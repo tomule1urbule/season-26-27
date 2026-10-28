@@ -1,0 +1,19 @@
+{
+  "name": "season-26-27",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Season 26/27 adaptive endurance coach — plan, Garmin-driven daily adaptation, checkpoints, analytics.",
+  "scripts": {
+    "dev": "node scripts/build.mjs --serve",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/selftest.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  }
+}
