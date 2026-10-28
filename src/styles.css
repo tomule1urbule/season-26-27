@@ -314,3 +314,74 @@ table.t td.n { font-variant-numeric: tabular-nums; text-align: right; }
   .board { animation: rise .45s cubic-bezier(.2,.8,.2,1) both; }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 }
+
+/* ── Strength cards ─────────────────────────────────── */
+.lifts { margin: 4px 0 2px; }
+.lifts-top { display: flex; gap: 6px 20px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--board-mute); padding: 6px 0 12px; }
+.lifts-top b { color: var(--board-ink); font-size: 17px; font-variant-numeric: tabular-nums; }
+.lifts-top .prog { flex: 1 1 120px; height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; min-width: 90px; }
+.lifts-top .prog i { display: block; height: 100%; background: var(--sc); border-radius: 99px; transition: width .25s; }
+.lg { margin-top: 6px; }
+.lg h4 { font-size: 12.5px; font-weight: 700; color: var(--board-mute); padding: 10px 0 6px; letter-spacing: .01em; }
+.lift { display: grid; grid-template-columns: 54px 1fr; gap: 14px; padding: 14px 14px 12px; background: rgba(255,255,255,.06); border: 1px solid var(--board-line); border-radius: 14px; margin-bottom: 8px; }
+.lift .ico { width: 54px; height: 54px; border-radius: 14px; background: rgba(255,255,255,.10); display: grid; place-items: center; color: #fff; border-bottom: 3px solid var(--sc); }
+.lift .ico svg { width: 36px; height: 36px; }
+.lift-h { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.lift-h h5 { font-size: 17px; font-weight: 750; letter-spacing: -0.01em; color: #fff; }
+.lift .load { font-size: 15px; color: var(--board-mute); white-space: nowrap; }
+.lift .load b { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.lift .load small { display: block; font-size: 11.5px; text-align: right; line-height: 1.1; }
+.lift-dose { font-size: 15px; color: var(--board-ink); margin-top: 1px; }
+.lift-dose b { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+.lift-meta { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--board-mute); margin-top: 3px; }
+.dots { display: flex; gap: 8px; margin-top: 10px; }
+.dots button { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); background: transparent; color: var(--board-mute); font: 700 13px var(--font, inherit); cursor: pointer; transition: background .15s, transform .1s; }
+.dots button:hover { border-color: #fff; }
+.dots button.on { background: var(--sc); border-color: var(--sc); color: #0a1a2b; }
+.dots button:active { transform: scale(.92); }
+.cue { margin-top: 8px; font-size: 13px; color: var(--board-mute); }
+.cue summary { cursor: pointer; width: fit-content; }
+.cue p { margin-top: 4px; color: var(--board-ink); max-width: 60ch; }
+.lift-src { margin-top: 6px; font-size: 12.5px; color: var(--board-mute); }
+.lift-src b { color: #ffd37a; font-weight: 600; }
+.extra { padding: 8px 0; font-size: 14px; border-top: 1px solid var(--board-line); }
+.lifts-foot { margin-top: 10px; font-size: 12.5px; color: var(--board-mute); max-width: 70ch; }
+.lifts-foot b { color: var(--board-ink); }
+.step.lifts-step { grid-template-columns: 1fr; border-top: 0; padding: 0; }
+.exl { margin: 0; padding-left: 18px; }
+@media (max-width: 560px) { .lift { grid-template-columns: 44px 1fr; gap: 10px; padding: 12px 10px; } .lift .ico { width: 44px; height: 44px; } .lift .ico svg { width: 30px; height: 30px; } }
+
+/* ── Why this session / references ──────────────────── */
+.why { margin-top: 14px; border-top: 1px solid var(--board-line); padding-top: 12px; font-size: 14px; }
+.why summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-weight: 700; }
+.why summary em { font-style: normal; font-weight: 500; color: var(--board-mute); }
+.why p { margin-top: 8px; max-width: 68ch; line-height: 1.5; }
+.why .you { color: var(--board-ink); }
+.refs { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+.refs li { display: grid; gap: 3px; font-size: 13px; padding-left: 12px; border-left: 3px solid var(--board-line); }
+.refs .rc { font-weight: 650; }
+.refs .rf { color: var(--board-mute); }
+.refs .rb { display: flex; gap: 6px; flex-wrap: wrap; }
+.refs .rb i { font-style: normal; font-size: 11.5px; padding: 1px 8px; border-radius: 99px; background: rgba(255,255,255,.10); }
+.refs .rb .v-read { background: rgba(60,200,140,.22); } .refs .rb .v-memory { background: rgba(240,165,0,.28); }
+.refs.full li { border-left-color: var(--line-2); } .refs.full .rf { color: var(--ink-2); }
+.refs.full .rb i { background: var(--surface-2); }
+.refs.full .rb .v-read { background: var(--good-bg, #dff5ea); } .refs.full .rb .v-memory { background: var(--warn-bg); }
+.method p { margin: 0 0 10px; max-width: 74ch; line-height: 1.5; } .method ul { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 4px; max-width: 74ch; }
+
+/* ── Coach review ───────────────────────────────────── */
+.coach-top { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 18px; align-items: start; }
+.verdict { padding: 14px 16px; border-radius: 14px; border-left: 6px solid var(--line-2); background: var(--surface-2); display: grid; gap: 2px; }
+.verdict b { font-size: 20px; letter-spacing: -0.02em; } .verdict span { font-size: 13px; color: var(--ink-2); }
+.verdict.good { border-color: var(--good); } .verdict.warn { border-color: var(--warn); } .verdict.bad { border-color: var(--crit); }
+.coach-why p { margin: 0 0 6px; line-height: 1.5; max-width: 70ch; }
+.sig { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 14px; }
+.sg { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border-left: 4px solid var(--line-2); display: grid; gap: 2px; }
+.sg.good { border-color: var(--good); } .sg.warn { border-color: var(--warn); } .sg.bad { border-color: var(--crit); }
+.sg .sk { font-size: 12.5px; color: var(--ink-2); } .sg b { font-size: 18px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; } .sg .sn { font-size: 12px; color: var(--ink-3, var(--ink-2)); line-height: 1.35; }
+@media (max-width: 720px) { .coach-top { grid-template-columns: 1fr; } }
+
+/* ── Log: strength table ────────────────────────────── */
+.liftlog { display: grid; grid-template-columns: minmax(0, 1fr) 64px 56px 64px; gap: 6px 8px; align-items: center; font-size: 13.5px; }
+.liftlog .h { font-size: 11.5px; color: var(--ink-2); } .liftlog .lr { display: contents; }
+.liftlog input { width: 100%; padding: 6px 8px; }

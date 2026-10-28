@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { addDays, fmtShort } from '../lib/dates.js';
 import { DEFAULT_FALL_MARATHON, LOCAL_KEYS } from '../lib/config.js';
 import { RULES } from '../lib/adapt.js';
+import Method from './Method.jsx';
 
 export default function Settings({ settings, setSettings, data, restore, garmin, plan }) {
   const fileRef = useRef(null);
@@ -55,6 +56,7 @@ export default function Settings({ settings, setSettings, data, restore, garmin,
         </tbody></table>
         <p className="small muted" style={{ marginTop: 8 }}>Anything that is neither clearly green nor red (for example readiness 80 but sleep 70) is treated as yellow. Edit the thresholds in <code>src/lib/adapt.js</code>.</p>
       </section>
+      <Method plan={plan} />
       <section className="card">
         <h2 style={{ marginBottom: 8 }}>Garmin data</h2>
         <p className="small ink2">{garmin?.data ? <>Snapshot from <b>{garmin.data.meta.asOf.replace('T', ' ')}</b>. {garmin.data.activities.length} activities, {garmin.data.hrv.length} nights of HRV, {garmin.data.load.length} days of load.</> : 'No snapshot found at data/garmin.json.'}</p>

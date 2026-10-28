@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Ribbon from './Ribbon.jsx';
 import { SessionBoard, Ring, Sparkline, LEVEL, chipLabel, gc } from './ui.jsx';
 import { adaptSession, applyTrim, microcycleAdvice, RULES } from '../lib/adapt.js';
+import { applyReview } from '../lib/coach.js';
 import { addDays, diffDays, fmtLong, fmtShort, fmtDow, mondayOf } from '../lib/dates.js';
 import { nextEvent, phaseOn, sessionsOn } from '../lib/plan.js';
 
@@ -44,6 +45,28 @@ function Readiness({ decision, headline, metrics, garmin, scenario, date, trim }
   );
 }
 
+function CoachCard({ review }) {
+  const tone = { progress: 'good', hold: 'warn', deload: 'bad' }[review.action];
+  const shown = review.signals.filter((x) => x.state !== 'none' || review.signals.length < 4);
+  return (
+    <section className={`card coach ${tone}`} aria-label="Weekly coach review">
+      <div className="card-h"><h2>Weekly coach review</h2><span className="sec-note">Last 7 days, {fmtShort(review.from)} to {fmtShort(review.to)}</span></div>
+      <div className="coach-top">
+        <div className={`verdict ${tone}`}><b>{review.label}</b><span>{review.factor < 1 ? `${Math.round((1 - review.factor) * 100)}% less volume for the next 7 days` : 'next 7 days as written'}</span></div>
+        <div className="coach-why">{review.reasons.map((r, i) => <p key={i}>{r}</p>)}</div>
+      </div>
+      <div className="sig">
+        {shown.map((x) => (
+          <div key={x.label} className={`sg ${x.state}`} title={x.note}>
+            <span className="sk">{x.label}</span><b>{x.value}</b><span className="sn">{x.note}</span>
+          </div>
+        ))}
+      </div>
+      <p className="small muted" style={{ marginTop: 10 }}>These signals use Garmin data up to the snapshot date plus your log. Each rule and the papers behind it are on the Settings tab under “Method and evidence”.</p>
+    </section>
+  );
+}
+
 function QuickEntry({ date, manual, setManual }) {
   const cur = manual[date] || {};
   const set = (k, v) => setManual({ ...manual, [date]: { ...cur, [k]: v } });
@@ -80,8 +103,8 @@ function Advisor({ advice, settings, setSettings, date, plan }) {
   );
 }
 
-export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, goLog, openDay, step, backToToday, isPreview }) {
-  const sessions = sessionsOn(plan, date);
+export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, review, goLog, openDay, step, backToToday, isPreview }) {
+  const sessions = useMemo(() => sessionsOn(plan, date).map((x) => applyReview(x, review)), [plan, date, review]);
   const ph = phaseOn(plan, date);
   const results = useMemo(() => sessions.map((s) => adaptSession(s, decision, metrics)), [sessions, decision, metrics]);
   const head = results.find((r) => r.session.group !== 'rest') || results[0];
@@ -126,11 +149,13 @@ export default function Dashboard({ plan, date, decision, metrics, garmin, scena
         <Readiness decision={decision} headline={head?.headline} metrics={metrics} garmin={garmin} scenario={scenario} date={date} trim={decision.trim} />
       </div>
 
+      <CoachCard review={review} />
+
       <section className="card">
         <div className="card-h"><h2>The week ahead</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
         <div className="wk">
           {week.map((d, i) => {
-            const ss = sessionsOn(plan, d).map((s) => applyTrim(s, i === 0 ? 0 : decision.trim));
+            const ss = sessionsOn(plan, d).map((s) => applyTrim(applyReview(s, review), i === 0 ? 0 : decision.trim));
             return (
               <button key={d} className={`wk-day ${i === 0 ? 'today' : ''}`} onClick={() => openDay(d)} aria-label={`${fmtLong(d)}: ${ss.map(chipLabel).join(', ') || 'nothing planned'}`}>
                 <span className="d"><span>{i === 0 ? (isPreview ? fmtDow(d) : 'Today') : fmtDow(d)}</span><b>{d.slice(8).replace(/^0/, '')}</b></span>

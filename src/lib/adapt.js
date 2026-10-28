@@ -101,7 +101,7 @@ export function adaptSession(s, decision, m) {
   }
   if (decision.level === 'yellow') {
     if (s.group === 'strength') {
-      return { ...base, status: 'modified', headline: 'same session, lighter', session: { ...s, title: s.title + ' (−10 % load)', main: s.main, target: 'Stop every set with 3+ reps in reserve · drop the last set of each lift · no plyometrics', tss: Math.round(s.tss * 0.8) } };
+      return { ...base, status: 'modified', headline: 'same session, lighter', session: { ...s, lighter: true, extras: [], target: 'Loads −10 % · one set fewer on every lift · stop each set with 3+ reps in reserve · no jumps today', tss: Math.round(s.tss * 0.8) } };
     }
     if (isHard(s)) {
       const sport = s.sport === 'brick' ? 'bike' : s.sport;

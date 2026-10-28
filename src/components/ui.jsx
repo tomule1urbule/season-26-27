@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { fmtDow, fmtShort } from '../lib/dates.js';
+import { StrengthPanel, WhyPanel, useLifts } from './Strength.jsx';
+import { resolveSession, exLine } from '../lib/strength.js';
 
 export const GROUPS = { run: 'Run', bike: 'Bike', swim: 'Swim', strength: 'Strength', brick: 'Brick', rest: 'Rest', checkpoint: 'Checkpoint test', race: 'Race' };
 export const gc = (g) => `var(--s-${g || 'rest'})`;
@@ -16,7 +18,7 @@ export const hrs = (min) => `${Math.floor(min / 60)}h${String(Math.round(min % 6
 export function chipLabel(s) {
   if (s.group === 'race') return `RACE · ${s.title.replace(/^.*?· /, '').replace('Half Marathon', 'HM').replace(' Sprint Triathlon', ' tri')}`;
   if (s.group === 'checkpoint') return `TEST ${s.checkpoint}${s.sport === 'swim' ? ' swim' : s.sport === 'bike' ? ' bike' : ''}`;
-  if (s.group === 'strength') return `Strength ${s.title.includes('B') ? 'B' : 'A'}`;
+  if (s.group === 'strength') return `Strength ${s.strengthDay || (s.title.includes('B') ? 'B' : 'A')}`;
   if (s.group === 'swim') return s.meters ? `Swim ${(s.meters / 1000).toFixed(1)}k` : `Swim ${s.minutes}′`;
   if (s.group === 'run') return s.km ? `Run ${Math.round(s.km * 10) / 10} km${s.kind === 'key' ? ' ★' : s.kind === 'long' ? ' L' : ''}` : `Run ${s.minutes}′`;
   if (s.group === 'bike') return `Bike ${s.minutes}′`;
@@ -53,6 +55,7 @@ const KV = ({ k, v }) => v ? (<><dt>{k}</dt><dd>{v}</dd></>) : null;
 
 /** One session. `result` (optional) is the adaptive-engine outcome for it. */
 export function SessionCard({ s, result, onLog, trim }) {
+  const lifts = useLifts();
   const eff = result?.session || s;
   const changed = result && ['modified', 'recovery', 'deferred'].includes(result.status);
   const showOrig = result && result.original && changed;
@@ -73,7 +76,7 @@ export function SessionCard({ s, result, onLog, trim }) {
       <dl className="kv">
         <KV k="Target" v={eff.target} />
         <KV k="Warm-up" v={eff.warmup} />
-        <KV k="Main" v={eff.main} />
+        <KV k="Main" v={eff.exercises ? <ul className="exl">{resolveSession(eff, lifts).exercises.map((e) => <li key={e.id}>{exLine(e)}</li>)}</ul> : eff.main} />
         <KV k="Cool-down" v={eff.cooldown} />
         <KV k="Notes" v={eff.notes} />
       </dl>
@@ -103,14 +106,14 @@ export function SessionBoard({ s, result, onLog, minor, children }) {
   const eff = result?.session || s;
   const changed = result && ['modified', 'recovery', 'deferred'].includes(result.status);
   const warm = sumMin(eff.warmup), cool = sumMin(eff.cooldown), main = (eff.minutes || 0) - warm - cool;
-  const struct = warm > 0 && cool > 0 && main >= 5 && eff.group !== 'rest';
+  const struct = warm > 0 && cool > 0 && main >= 5 && eff.group !== 'rest' && !eff.exercises;
   const rest = eff.group === 'rest';
   const step = (k, v, extra, cls = '') => v ? (<div className={`step ${cls}`}><dt>{k}{extra ? <b>{extra}</b> : null}</dt><dd>{v}</dd></div>) : null;
   return (
     <article className={`board ${minor ? 'minor' : ''}`} style={{ '--sc': gc(eff.group) }}>
       <div className="kicker">
         <span className="tag"><i />{GROUPS[eff.group] || 'Session'}</span>
-        <span className="tag">{KIND[eff.kind] || eff.kind}</span>
+        {(KIND[eff.kind] || eff.kind) !== GROUPS[eff.group] && <span className="tag">{KIND[eff.kind] || eff.kind}</span>}
         {changed && <span className="tag warn">{result.status === 'recovery' ? 'Replaced' : result.status === 'deferred' ? 'Deferred' : 'Adjusted for today'}</span>}
         {eff.trimmed && <span className="tag warn">−{eff.trimmed}% load trim</span>}
       </div>
@@ -131,10 +134,12 @@ export function SessionBoard({ s, result, onLog, minor, children }) {
       <dl className="steps" style={{ margin: struct ? undefined : '14px 0 0' }}>
         {step('Target', eff.target, null, 'target')}
         {step('Warm-up', eff.warmup, struct ? `${warm}′` : null)}
-        {step('Main', eff.main, struct ? `${main}′` : null)}
+        {!eff.exercises && step('Main', eff.main, struct ? `${main}′` : null)}
+        {eff.exercises && <div className="step lifts-step"><dd><StrengthPanel s={eff} /></dd></div>}
         {step('Cool-down', eff.cooldown, struct ? `${cool}′` : null)}
         {step('Notes', eff.notes)}
       </dl>
+      {eff.why && <WhyPanel id={eff.why} />}
       {result?.options && (
         <div className="opts"><div className="small" style={{ color: 'var(--board-mute)' }}>Pick one:</div>
           {result.options.map((o, i) => <div className="opt" key={i}><b>{o.title}</b>{o.main ? <span style={{ color: 'var(--board-mute)' }}> — {o.main}</span> : null}</div>)}

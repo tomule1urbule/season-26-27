@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { activitiesOn, metricsForDate } from '../lib/garmin.js';
 import { fmtLong, fmtShort } from '../lib/dates.js';
 import { sessionsOn } from '../lib/plan.js';
+import { LIB, resolveSession } from '../lib/strength.js';
 
 const MOODS = ['Drained', 'Flat', 'Okay', 'Good', 'Great'];
 const STATUS = { done: 'Done as planned', modified: 'Done, modified', partial: 'Partly done', skipped: 'Skipped' };
@@ -20,17 +21,17 @@ function Telemetry({ g, date }) {
   );
 }
 
-export default function LogView({ plan, garmin, log, setLog, date, draftSession, clearDraft }) {
+export default function LogView({ lifts, plan, garmin, log, setLog, date, draftSession, clearDraft }) {
   const g = garmin?.data;
   const [d, setD] = useState(draftSession?.date || date);
   useEffect(() => { if (!draftSession) { setD(date); setF((x) => ({ ...x, sessionId: sessionsOn(plan, date)[0]?.id || '' })); } }, [date]); // eslint-disable-line
   const plannedToday = sessionsOn(plan, d);
-  const blank = { sessionId: draftSession?.id || plannedToday[0]?.id || '', status: 'done', rpe: 5, mood: 2, nutrition: '', notes: '' };
+  const blank = { sessionId: draftSession?.id || plannedToday[0]?.id || '', status: 'done', rpe: 5, mood: 2, nutrition: '', notes: '', lifts: {} };
   const [f, setF] = useState(blank);
   const sess = plannedToday.find((s) => s.id === f.sessionId);
   const sorted = useMemo(() => [...log].sort((a, b) => (a.date < b.date ? 1 : -1)), [log]);
   const save = () => {
-    setLog([...log, { id: `${Date.now()}`, date: d, sessionId: f.sessionId, title: sess?.title || 'Unplanned session', status: f.status, rpe: Number(f.rpe), mood: Number(f.mood), nutrition: f.nutrition, notes: f.notes }]);
+    setLog([...log, { id: `${Date.now()}`, date: d, sessionId: f.sessionId, title: sess?.title || 'Unplanned session', status: f.status, rpe: Number(f.rpe), mood: Number(f.mood), nutrition: f.nutrition, notes: f.notes, lifts: f.lifts }]);
     setF({ ...blank, sessionId: plannedToday[0]?.id || '' }); clearDraft?.();
   };
   return (
@@ -55,6 +56,25 @@ export default function LogView({ plan, garmin, log, setLog, date, draftSession,
           <div className="stack">
             <label className="f">Nutrition & fuelling<textarea placeholder="e.g. 2 SiS BETA FUEL gels at 45′ and 90′, 600 ml water, breakfast 2.5 h before" value={f.nutrition} onChange={(e) => setF({ ...f, nutrition: e.target.value })} /></label>
             <label className="f">Notes<textarea placeholder="Legs, breathing, sleep, anything the numbers miss" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
+            {sess?.exercises && (() => {
+              const r = resolveSession(sess, lifts || {});
+              const setL = (id, k, v) => setF({ ...f, lifts: { ...f.lifts, [id]: { ...(f.lifts[id] || {}), [k]: v } } });
+              return (
+                <div className="card" style={{ background: 'var(--surface-2)' }}>
+                  <div className="small muted" style={{ marginBottom: 8 }}>Your sets. Enter the weight you used and the reps you got on the <b>last</b> set. The next session’s loads are calculated from this.</div>
+                  <div className="liftlog">
+                    <span className="h">Exercise</span><span className="h">kg</span><span className="h">Reps</span><span className="h">In reserve</span>
+                    {r.exercises.map((e) => { const lib = LIB[e.id]; const v = f.lifts[e.id] || {}; return (
+                      <div className="lr" key={e.id}>
+                        <span>{lib.name}</span>
+                        {lib.timed ? <span className="muted">–</span> : <input type="number" inputMode="decimal" min="0" step="0.5" placeholder={String(e.kg)} value={v.kg ?? ''} onChange={(ev) => setL(e.id, 'kg', ev.target.value)} aria-label={`${lib.name} weight in kg`} />}
+                        <input type="number" inputMode="numeric" min="0" placeholder={String(e.reps[1])} value={v.reps ?? ''} onChange={(ev) => setL(e.id, 'reps', ev.target.value)} aria-label={`${lib.name} reps`} />
+                        {lib.timed ? <span className="muted">–</span> : <input type="number" inputMode="numeric" min="0" max="6" placeholder={String(e.rir)} value={v.rir ?? ''} onChange={(ev) => setL(e.id, 'rir', ev.target.value)} aria-label={`${lib.name} reps in reserve`} />}
+                      </div>); })}
+                  </div>
+                </div>
+              );
+            })()}
             <div className="card" style={{ background: 'var(--surface-2)' }}><div className="small muted" style={{ marginBottom: 6 }}>Garmin on {fmtShort(d)}</div><Telemetry g={g} date={d} /></div>
           </div>
         </div>
@@ -68,7 +88,7 @@ export default function LogView({ plan, garmin, log, setLog, date, draftSession,
             <article key={e.id} className="card" style={{ background: 'var(--surface-2)' }}>
               <div className="spread"><b>{fmtLong(e.date)}</b><span className="row"><span className="pill">{STATUS[e.status]}</span><button className="btn sm ghost" onClick={() => setLog(log.filter((x) => x.id !== e.id))}>Delete</button></span></div>
               <div className="entry" style={{ marginTop: 8 }}>
-                <div className="col"><div className="small muted">You</div><p><b>{e.title}</b></p><p className="small ink2 num">RPE {e.rpe}/10 · {MOODS[e.mood]}</p>{e.nutrition && <p className="small">Fuel: {e.nutrition}</p>}{e.notes && <p className="small">{e.notes}</p>}</div>
+                <div className="col"><div className="small muted">You</div><p><b>{e.title}</b></p><p className="small ink2 num">RPE {e.rpe}/10 · {MOODS[e.mood]}</p>{e.nutrition && <p className="small">Fuel: {e.nutrition}</p>}{e.notes && <p className="small">{e.notes}</p>}{e.lifts && Object.keys(e.lifts).length > 0 && <p className="small ink2 num">{Object.entries(e.lifts).filter(([, v]) => v && v.reps).map(([id, v]) => `${LIB[id]?.name || id} ${v.kg ? v.kg + ' kg × ' : ''}${v.reps}`).join(' · ')}</p>}</div>
                 <div className="col"><div className="small muted">Garmin</div><Telemetry g={g} date={e.date} /></div>
               </div>
             </article>

@@ -7,6 +7,9 @@ import Settings from './components/Settings.jsx';
 import { generatePlan } from './lib/plan.js';
 import { classify } from './lib/adapt.js';
 import { recalibrate } from './lib/zones.js';
+import { weeklyReview } from './lib/coach.js';
+import { liftsFromLog } from './lib/strength.js';
+import { LiftsContext } from './components/Strength.jsx';
 import { loadGarmin, metricsForDate, levelHistory } from './lib/garmin.js';
 import { DEFAULT_FALL_MARATHON, LOCAL_KEYS } from './lib/config.js';
 import { todayStr, addDays } from './lib/dates.js';
@@ -46,6 +49,8 @@ export default function App() {
   useEffect(() => { if (!tools) return; const k = (e) => e.key === 'Escape' && setTools(false); const c = (e) => !e.target.closest?.('.pop-wrap') && setTools(false); window.addEventListener('keydown', k); window.addEventListener('mousedown', c); return () => { window.removeEventListener('keydown', k); window.removeEventListener('mousedown', c); }; }, [tools]);
   const step = (n) => { const d = addDays(date, n); setPreview(d === realToday ? '' : d); };
   const history = useMemo(() => levelHistory(garmin.data), [garmin.data]);
+  const lifts = useMemo(() => liftsFromLog(log), [log]);
+  const review = useMemo(() => weeklyReview({ plan, g: garmin.data, log, date }), [plan, garmin.data, log, date]);
 
   const backup = { settings, cpResults, log, manual };
   const restore = (b) => { if (b.settings) setSettings(b.settings); if (b.cpResults) setCpResults(b.cpResults); if (b.log) setLog(b.log); if (b.manual) setManual(b.manual); };
@@ -53,7 +58,7 @@ export default function App() {
   const openDay = (d) => { setPreview(d === realToday ? '' : d); setTab('today'); window.scrollTo({ top: 0 }); };
 
   return (
-    <>
+    <LiftsContext.Provider value={lifts}>
       <header className="header">
         <div className="header-in">
           <div className="brand">
@@ -78,12 +83,12 @@ export default function App() {
         </div>
       </header>
       <main className="main">
-        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} goLog={goLog} openDay={openDay} step={step} backToToday={() => setPreview('')} isPreview={!!preview} />}
+        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} review={review} goLog={goLog} openDay={openDay} step={step} backToToday={() => setPreview('')} isPreview={!!preview} />}
         {tab === 'calendar' && <Calendar plan={plan} today={date} log={log} onJump={openDay} />}
         {tab === 'analytics' && <Analytics plan={plan} garmin={garmin} date={date} today={date} results={cpResults} setResults={setCpResults} recal={recal} />}
-        {tab === 'log' && <LogView key={draft?.id || 'x'} plan={plan} garmin={garmin} log={log} setLog={setLog} date={date} draftSession={draft} clearDraft={() => setDraft(null)} />}
-        {tab === 'settings' && <Settings settings={settings} setSettings={setSettings} data={backup} restore={restore} garmin={garmin} plan={plan} />}
+        {tab === 'log' && <LogView key={draft?.id || 'x'} lifts={lifts} plan={plan} garmin={garmin} log={log} setLog={setLog} date={date} draftSession={draft} clearDraft={() => setDraft(null)} />}
+        {tab === 'settings' && <Settings settings={settings} setSettings={setSettings} data={backup} restore={restore} garmin={garmin} plan={plan} review={review} />}
       </main>
-    </>
+    </LiftsContext.Provider>
   );
 }

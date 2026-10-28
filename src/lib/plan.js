@@ -9,6 +9,7 @@
 // when fatigue or life demands are high (see tenDay in generatePlan).
 
 import { addDays, diffDays, dow, mondayOf, range } from './dates.js';
+import { SESSIONS, BLOCKS, buildExercises, estMinutes, exLine } from './strength.js';
 import {
   SEASON, ATHLETE, HR_ZONES, TSS_PER_HOUR, makePaces, secToPace, buildPhases, buildRaces, buildCheckpoints,
   DEFAULT_FALL_MARATHON,
@@ -35,7 +36,7 @@ export function makeBuilders(P, cfg) {
   const w = (lo, hi) => `${Math.round(cfg.ftp * lo)}–${Math.round(cfg.ftp * hi)} W`;
   const ftpNote = cfg.ftpTested ? '' : ' (FTP 236 W is from Aug 2025 – treat watts as provisional until Checkpoint 1)';
 
-  const easyTarget = `HR ${Z2} bpm (Z2) · ${pc(P.easyLo)}–${pc(P.easyHi)} /km · conversational`;
+  const easyTarget = `HR below ${HR_ZONES[1].hi} bpm (usually 132–145 for you) · ${pc(P.easyLo)}–${pc(P.easyHi)} /km · conversational`;
   const fuel = (min) => {
     const gels = Math.max(1, Math.floor((min - 15) / 40));
     return `Fuel: 1 SiS BETA FUEL gel (40 g carbs) every ~40′ ≈ 60 g/h, first one at 30–40′ (about ${gels} gel${gels > 1 ? 's' : ''}). Use the exact products and timing planned for race day.`;
@@ -43,18 +44,18 @@ export function makeBuilders(P, cfg) {
 
   const B = {
     rest: (note = 'Full rest. Walk, eat well, sleep.') => mk({ group: 'rest', sport: 'rest', kind: 'rest', title: 'Rest day', main: note, intensity: 'rest', minutes: 0 }),
-    recovery: (title, minutes, main) => mk({ group: 'rest', sport: 'rest', kind: 'recovery', title, minutes, intensity: 'rec', main, target: 'RPE 1–2 · HR below 125' }),
-    mobility: (minutes = 20) => mk({ group: 'rest', sport: 'rest', kind: 'recovery', title: `Mobility & core · ${minutes}′`, minutes, intensity: 'rec',
+    recovery: (title, minutes, main) => mk({ why: 'recovery', group: 'rest', sport: 'rest', kind: 'recovery', title, minutes, intensity: 'rec', main, target: 'RPE 1–2 · HR below 125' }),
+    mobility: (minutes = 20) => mk({ why: 'recovery', group: 'rest', sport: 'rest', kind: 'recovery', title: `Mobility & core · ${minutes}′`, minutes, intensity: 'rec',
       main: 'Hips, hamstrings, calves, thoracic spine; finish with dead bug 2×10, bird-dog 2×10, side plank 2×30″.', target: 'RPE 1–2' }),
 
     easyRun: (km, o = {}) => mk({
       group: 'run', sport: 'run', kind: 'easy', intensity: 'z2', km, minutes: km * 6.1 + (o.strides ? 3 : 0),
-      title: o.title || `Easy run · ${km} km`, target: easyTarget,
+      title: o.title || `Easy run · ${km} km`, target: easyTarget, why: 'easy_run',
       warmup: 'First 10′ very easy – walk breaks are fine.',
       main: `${km} km at conversational effort.${o.strides ? ` Finish with ${o.strides}×20″ relaxed strides (walk back recovery).` : ''}${o.note ? ' ' + o.note : ''}`,
       cooldown: '5′ walk + 5′ calf/hip mobility.',
     }),
-    runWalk: (km) => mk({ group: 'run', sport: 'run', kind: 'easy', intensity: 'rec', km, minutes: km * 6.8, title: `Run/walk · ${km} km`,
+    runWalk: (km) => mk({ group: 'run', sport: 'run', kind: 'easy', intensity: 'rec', km, minutes: km * 6.8, title: `Run/walk · ${km} km`, why: 'recovery_marathon',
       target: `HR below ${HR_ZONES[1].hi} · RPE 2–3`, warmup: '5′ brisk walk.', main: `${km} km as 4′ easy jog / 1′ walk. First run back after the marathon – stop if anything pinches.`, cooldown: '5′ walk.' }),
     longRun: (km, o = {}) => {
       const parts = [];
@@ -63,7 +64,7 @@ export function makeBuilders(P, cfg) {
       if (o.steady) parts.push(`${o.steady} km progressive to ${pc(o.steadyPace ?? P.hmp + 12)}/km`);
       const minutes = km * (o.mp || o.hmp ? 5.8 : o.steady ? 5.9 : 6.05);
       return mk({
-        group: 'run', sport: 'run', kind: 'long', intensity: parts.length ? 'steady' : 'z2', km, minutes,
+        group: 'run', sport: 'run', kind: 'long', intensity: parts.length ? 'steady' : 'z2', km, minutes, why: parts.length ? 'long_pace' : 'long_run',
         title: o.title || `Long run · ${km} km${parts.length ? ' with pace work' : ''}`,
         target: parts.length ? `Easy parts HR ${Z2} · quality parts as listed` : easyTarget,
         warmup: 'First 3 km very easy.',
@@ -75,6 +76,7 @@ export function makeBuilders(P, cfg) {
     keyRun: (o) => mk({
       group: 'run', sport: 'run', kind: 'key', intensity: o.intensity || 'vo2', km: o.totalKm, minutes: o.totalKm * 5.7,
       title: o.title, target: o.target, main: o.main,
+      why: o.why || (/^Hills/.test(o.title) ? 'hills' : /^Speed/.test(o.title) ? 'speed' : ({ vo2: 'vo2', thr: 'threshold' }[o.intensity || 'vo2'] || 'tempo')),
       warmup: o.warm || '15′ easy jog, drills (A-skips, high knees, leg swings), 3×20″ strides.',
       cooldown: o.cool || '10′ easy jog + 5′ walk.', notes: o.notes || '',
     }),
@@ -84,7 +86,7 @@ export function makeBuilders(P, cfg) {
       const f = (s) => `${s.r > 1 ? s.r + '×' : ''}${s.d} m ${s.what}${s.rest ? ` (${s.rest}″ rest)` : ''}`;
       return mk({
         group: 'swim', sport: 'swim', kind: o.kind || 'easy', intensity: o.intensity || 'z2', meters: total, minutes: total * 0.046 + 6,
-        title: `${title} · ${total} m`, target: o.target || `RPE 4–5 · ${o.cssNote || 'form over speed – stop a drill when technique fades'}`,
+        title: `${title} · ${total} m`, why: o.why || 'swim_tech', target: o.target || `RPE 4–5 · ${o.cssNote || 'form over speed – stop a drill when technique fades'}`,
         warmup: f(segs[0]), main: segs.slice(1, -1).map(f).join('  →  '), cooldown: f(segs[segs.length - 1]), notes: o.notes || '',
       });
     },
@@ -99,7 +101,7 @@ export function makeBuilders(P, cfg) {
         open: ['Race-effort openers', 'steady', o.main || '3×3′ at race effort with 3′ easy; stay smooth.', `RPE 6–7 · ${w(0.85, 0.95)}`],
       }[type];
       return mk({
-        group: 'bike', sport: 'bike', kind: ['z2', 'rec', 'cad', 'open'].includes(type) ? 'easy' : 'key', intensity: t[1], minutes,
+        group: 'bike', sport: 'bike', kind: ['z2', 'rec', 'cad', 'open'].includes(type) ? 'easy' : 'key', intensity: t[1], minutes, why: type === 'rec' ? 'recovery' : ['ss', 'thr', 'open'].includes(type) ? 'bike_hard' : 'bike',
         title: `${o.title || t[0]} · ${minutes}′`, target: t[3] + (type === 'ss' || type === 'thr' ? ftpNote : ''),
         warmup: type === 'rec' || type === 'z2' ? '5′ easy build.' : '10′ easy + 3×30″ spin-ups.',
         main: t[2], cooldown: '5′ easy spin, then stretch hip flexors.',
@@ -108,7 +110,7 @@ export function makeBuilders(P, cfg) {
     },
 
     brick: (o) => mk({
-      group: 'brick', sport: 'brick', kind: 'key', intensity: o.intensity || 'steady', minutes: o.bikeMin + o.runMin + 4, km: o.runKm,
+      group: 'brick', sport: 'brick', kind: 'key', why: 'brick', intensity: o.intensity || 'steady', minutes: o.bikeMin + o.runMin + 4, km: o.runKm,
       title: `Brick · ${o.bikeMin}′ bike + ${o.runMin}′ run`, target: o.target,
       warmup: '10′ easy on the bike before the main block.',
       main: `Bike: ${o.bike}  →  T2 in under 2′ (shoes, helmet off, go)  →  Run: ${o.run}`,
@@ -116,29 +118,21 @@ export function makeBuilders(P, cfg) {
     }),
 
     strength: (which, level = 'build', o = {}) => {
-      const sets = level === 'light' ? 2 : level === 'taper' ? 2 : 3;
-      const rir = level === 'build' ? '2 reps in reserve' : '3 reps in reserve';
-      const A = [
-        `Bulgarian split squat ${sets}×8–10 per leg`, `Single-leg Romanian deadlift ${sets}×8–10 per leg`,
-        `Incline DB press ${sets + 1}×8–12`, `One-arm DB row ${sets + 1}×8–12 per side`, `Rear-delt fly ${sets}×12–15`,
-        `DB biceps curl ${sets}×10–12`, `Side plank ${sets}×30–45″ per side`, `Single-leg calf raise ${sets}×12–15`,
-      ];
-      const Bx = [
-        `Goblet squat (3″ lowering) ${sets}×8–10`, `Hip thrust on bench ${sets}×10–12`, `Flat DB bench press ${sets + 1}×8–12`,
-        `Chest-supported DB row on incline bench ${sets}×10–12`, `Lying DB pullover ${sets}×10–12`, `Lateral raise ${sets}×12–15`,
-        `Overhead triceps extension ${sets}×10–12`, `Seated calf raise ${sets}×12–15`,
-      ];
-      let list = which === 'A' ? A : Bx;
-      if (level === 'light') list = list.filter((x) => !/squat|deadlift|thrust|calf/i.test(x)); // post-marathon: legs rest
-      if (o.plyo) list = [...list, 'Pogo hops 3×20, single-leg hops 3×8 per leg (quick, springy ground contact)'];
+      const block = level === 'taper' ? 'taper' : (B._block || 'anat');
+      const deload = level === 'light' && block !== 'return';
+      const exs = buildExercises(which, block, { deload });
+      const blk = BLOCKS[block];
+      const extras = o.plyo ? [{ name: 'Pogo hops', detail: '3 × 20, quick springy contacts, stiff ankles' }, { name: 'Single-leg hops', detail: '3 × 8 each leg, land softly and stick it' }] : [];
+      const label = block === 'return' ? ' (upper body and trunk, return week)' : deload ? ' (lighter week)' : '';
       return mk({
-        group: 'strength', sport: 'strength', kind: 'strength', intensity: 'str', minutes: level === 'light' ? 25 : level === 'taper' ? 25 : 38,
-        title: `Strength ${which}${level === 'light' ? ' (upper body only)' : level === 'taper' ? ' (short)' : ''}`,
-        target: `${rir} · rest 60–90″ · tempo 2-0-2`,
-        warmup: '5′ easy bike/jog + band pull-aparts, scap push-ups, bodyweight split squats.',
-        main: list.join('  ·  '),
-        cooldown: '3–5′ stretching.',
-        notes: 'Progression: when all sets hit the top of the rep range with clean form, add 2–4 kg per dumbbell. The adjustable dumbbells top out at 25 kg each – past that, slow the lowering to 3–4″, add a 1″ pause, or go unilateral.',
+        group: 'strength', sport: 'strength', kind: 'strength', intensity: 'str', strengthDay: which, block, exercises: exs, extras,
+        minutes: estMinutes(exs) + (extras.length ? 6 : 0), why: `strength_${block}`,
+        title: SESSIONS[which].name + label,
+        target: `${blk.label} block · stop every set with ${exs[0].rir} reps in reserve · tempo is lowering-pause-lifting in seconds`,
+        warmup: '5′ easy bike or brisk walk, band pull-aparts, scapular push-ups, bodyweight split squats. Before the first lift do two ramp-up sets at about 50 % and 75 % of the working weight.',
+        main: exs.map(exLine).join('  ·  '),
+        cooldown: '3–5′ stretching: hip flexors, calves, hamstrings.',
+        notes: `${SESSIONS[which].day}. ${blk.focus}`,
       });
     },
   };
@@ -154,10 +148,10 @@ export function makeBuilders(P, cfg) {
   const cssSet = (n, d) => [S(1, 200, 'easy', 0), S(4, 50, 'build', 15), S(n, d, `at CSS pace (${pc(css)}/100 m)`, 20), S(1, 100, 'easy', 0)];
 
   B.swimTech = (variant, n) => B.swim('Swim technique', tech[variant](n), { cssNote: 'form over speed' });
-  B.swimEndu = (continuous, reps) => B.swim('Swim endurance', endu(continuous, reps), { kind: 'key', intensity: 'steady' });
-  B.swimCss = (n, d) => B.swim('Swim CSS set', cssSet(n, d), { kind: 'key', intensity: 'tempo', cssNote: `CSS ${pc(css)}/100 m` });
+  B.swimEndu = (continuous, reps) => B.swim('Swim endurance', endu(continuous, reps), { kind: 'key', intensity: 'steady', why: 'swim_endu' });
+  B.swimCss = (n, d) => B.swim('Swim CSS set', cssSet(n, d), { kind: 'key', intensity: 'tempo', why: 'swim_css', cssNote: `CSS ${pc(css)}/100 m` });
   B.openWater = (minutes, main, note) => mk({
-    group: 'swim', sport: 'swim', kind: 'key', intensity: 'steady', minutes, title: `Open-water swim · ${minutes}′`,
+    group: 'swim', sport: 'swim', kind: 'key', intensity: 'steady', minutes, why: 'open_water', title: `Open-water swim · ${minutes}′`,
     target: 'RPE 4–6 · calm breathing is the goal, not pace',
     warmup: 'Wade in, splash the face and neck, 2′ of slow exhaling bubbles before swimming.',
     main, cooldown: 'Easy 3′, exit slowly, warm layers on immediately.',
@@ -192,9 +186,9 @@ function phase1(slot, { wk, B }) {
     }[slot];
   }
   return {
-    0: [B.easyRun(m), B.strength('A', 'build')],
+    0: [B.easyRun(m)],
     1: [B.swimTech(variants[(wk - 1) % 3], swimN)],
-    2: [B.easyRun(wd, { strides: wk >= 2 ? 6 : 4 })],
+    2: [B.easyRun(wd, { strides: wk >= 2 ? 6 : 4 }), B.strength('A', 'build')],
     3: [wk >= 3 ? B.swimEndu(wk >= 5 ? 600 : 400) : B.swimTech('elbow', swimN), B.strength('B', 'build')],
     4: [down || wk === 6 ? B.rest() : B.bike(bikeMin, wk === 2 ? 'cad' : 'z2')],
     5: [wk === 5 ? B.longRun(su) : B.rest()],
@@ -223,9 +217,9 @@ function phase2(slot, { wk, B, P }) {
   const lvl = wk === 6 ? 'taper' : 'build';
   const variants = ['catchup', 'elbow', 'breathe'];
   return {
-    0: [m ? B.easyRun(m, { strides: 4 }) : B.rest(), ...(wk >= 1 ? [B.strength('A', lvl, { plyo: true })] : [])],
+    0: [m ? B.easyRun(m, { strides: 4 }) : B.rest()],
     1: [B.swimTech(variants[wk % 3], 3 + (wk > 2 ? 1 : 0)), ...(bikeByWk[wk] ? [bikeByWk[wk]] : [])],
-    2: [wk === 0 ? B.rest() : wk === 7 ? B.rest() : key],
+    2: wk === 0 || wk === 7 ? [B.rest()] : [key, ...(wk <= 6 ? [B.strength('A', lvl, { plyo: true })] : [])],
     3: [B.swimEndu(wk >= 5 ? 800 : wk >= 3 ? 600 : 400), B.strength('B', lvl)],
     4: [f ? B.easyRun(f, { strides: 6, title: `Easy run + strides · ${f} km` }) : B.rest()],
     5: [B.rest()],
@@ -236,7 +230,7 @@ function phase2(slot, { wk, B, P }) {
 function phase3(slot, { wk, B, P }) {
   const pc = B.pc;
   // [Mon, Wed, Fri, Sun]
-  const V = [[0, 0, 5, 10], [8, 8, 7, 14], [9, 10, 8, 17], [10, 10, 8, 18], [8, 8, 6, 14], [10, 11, 8, 19], [9, 10, 6, 0], [8, 8, 6, 14], [10, 12, 8, 20], [8, 9, 5, 0], [6, 8, 6, 16], [9, 10, 7, 18], [7, 9, 0, 0]];
+  const V = [[0, 0, 5, 10], [8, 8, 7, 14], [9, 10, 8, 17], [10, 10, 8, 18], [8, 8, 6, 14], [10, 11, 8, 19], [9, 10, 6, 0], [8, 8, 6, 14], [10, 12, 8, 20], [8, 9, 5, 0], [7, 10, 6, 16], [6, 9, 5, 12], [5, 7, 0, 0]];
   const [m, k, f, su] = clampIdx(V, wk);
   const key = {
     1: B.keyRun({ title: 'Hills: 8×60″', totalKm: 9, target: 'Hard uphill effort (RPE 8) · jog down', main: '8×60″ uphill (4–6 % grade), jog down recovery. Strong knee drive, tall posture – builds power for the half.' }),
@@ -248,25 +242,25 @@ function phase3(slot, { wk, B, P }) {
     7: B.keyRun({ title: 'Pick-ups: 6×1′', totalKm: 8, intensity: 'tempo', target: `1′ at ${pc(P.ten)}/km · 2′ easy`, main: '6×1′ brisk with 2′ easy. Down week after the checkpoint.' }),
     8: B.keyRun({ title: 'HM pace: 4×2.4 km', totalKm: 16, intensity: 'thr', target: `${pc(P.goalHM)}/km · 90″ jog`, main: '4×2.4 km at goal half-marathon pace. This is the biggest pace session of the block (9.6 km at pace).' }),
     9: B.keyRun({ title: 'Sharpener: 5×1000 m', totalKm: 9, intensity: 'thr', target: `${pc(P.thr)}/km · 90″ jog`, main: '5×1000 m at threshold. Short and sharp – Kaunas is on Sunday.' }),
-    10: B.easyRun(8, { strides: 6, title: 'Easy run + strides · 8 km' }),
-    11: B.keyRun({ title: 'HM pace: 3×3 km', totalKm: 13, intensity: 'thr', target: `${pc(P.goalHM)}/km · 2′ jog`, main: 'Last big session before Riga: 3×3 km at goal half-marathon pace.' }),
-    12: B.keyRun({ title: 'Taper: 4×1000 m', totalKm: 9, intensity: 'tempo', target: `${pc(P.goalHM)}/km · 90″ jog`, main: '4×1000 m at half-marathon pace + 4×200 m quick. Stay fresh.' }),
+    10: B.keyRun({ title: 'HM pace: 3×3 km', totalKm: 13, intensity: 'thr', target: `${pc(P.goalHM)}/km · 2′ jog`, main: 'Last big session before Riga (3 weeks out): 3×3 km at goal half-marathon pace.' }),
+    11: B.keyRun({ title: 'Taper: 4×1000 m', totalKm: 9, intensity: 'tempo', target: `${pc(P.goalHM)}/km · 90″ jog`, main: '4×1000 m at half-marathon pace. Volume is down, intensity stays: this is the taper principle.', why: 'taper' }),
+    12: B.keyRun({ title: 'Taper: 3×1000 m', totalKm: 7, intensity: 'tempo', target: `${pc(P.goalHM)}/km · 90″ jog`, main: '3×1000 m at half-marathon pace + 4×20″ strides. Stay fresh.', why: 'taper' }),
   }[wk];
   const longs = {
     1: B.longRun(14), 2: B.longRun(17, { steady: 3, steadyPace: P.hmp + 20 }), 3: B.longRun(18, { steady: 4, steadyPace: P.hmp + 10 }),
     4: B.longRun(14), 5: B.longRun(19, { steady: 7, steadyPace: P.goalHM + 10 }), 7: B.longRun(14),
     8: B.longRun(20, { hmp: 10, hmpPace: P.goalHM + 3, layout: 'Layout: 5 easy → 10 km at HM pace → 5 easy. Practice gel timing.' }),
     10: B.longRun(16, { steady: 4, steadyPace: P.hmp + 15 }),
-    11: B.longRun(18, { hmp: 8, hmpPace: P.goalHM, layout: 'Layout: 5 easy → 8 km at HM pace → 5 easy.' }),
+    11: B.longRun(12, { hmp: 4, hmpPace: P.goalHM, layout: 'Layout: 4 easy → 4 km at HM pace → 4 easy. Short on purpose: you are tapering.' }),
   };
-  const lvl = [4, 7, 10].includes(wk) ? 'light' : wk === 9 || wk === 12 ? 'taper' : 'build';
+  const lvl = [4, 7, 10].includes(wk) ? 'light' : wk === 9 || wk >= 11 ? 'taper' : 'build';
   const variants = ['catchup', 'elbow', 'breathe'];
   const sw = wk % 2;
   return {
-    0: [m ? B.easyRun(m) : B.rest(), ...(wk > 0 && wk < 12 ? [B.strength('A', lvl === 'light' ? 'build' : lvl)] : [])],
+    0: [m ? B.easyRun(m) : B.rest()],
     1: [B.swimTech(variants[wk % 3], 3), ...(wk && wk < 9 && wk !== 6 ? [B.bike(wk === 8 ? 40 : 45, 'z2')] : [])],
-    2: [wk === 0 ? B.rest() : key],
-    3: [sw ? B.swimCss(6, 100) : B.swimEndu(wk > 4 ? 800 : 600), ...(wk && wk < 12 ? [B.strength('B', lvl === 'light' ? 'build' : lvl)] : [])],
+    2: wk === 0 ? [B.rest()] : [key, ...(wk < 12 ? [B.strength('A', lvl)] : [])],
+    3: [sw ? B.swimCss(6, 100) : B.swimEndu(wk > 4 ? 800 : 600), ...(wk && wk < 12 ? [B.strength('B', lvl)] : [])],
     4: [f ? B.easyRun(f, { strides: 6 }) : B.rest()],
     5: [wk === 12 ? B.easyRun(3, { strides: 4, title: 'Pre-race shakeout · 3 km' }) : B.rest()],
     6: [su ? (longs[wk] || B.longRun(su)) : B.rest()],
@@ -302,9 +296,9 @@ function phase4(slot, { wk, B, P }) {
     5: B.easyRun(5, { strides: 4, title: 'Pre-race run · 5 km' }),
   }[wk];
   return {
-    0: [m ? B.easyRun(m) : B.rest(), ...(wk !== 5 ? [B.strength('A', lvl)] : [])],
+    0: [m ? B.easyRun(m) : B.rest()],
     1: [poolTue, ...(cadMin ? [B.bike(cadMin, wk === 3 ? 'ss' : 'cad', { main: wk === 3 ? '2×10′ sweet spot, 5′ easy.' : undefined })] : [])],
-    2: [wk === 0 ? B.rest() : key],
+    2: wk === 0 ? [B.strength('A', 'light')] : [key, ...(wk !== 5 ? [B.strength('A', lvl)] : [])],
     3: [wk === 0 ? B.swimTech('elbow', 3) : ow[wk], ...(wk !== 5 ? [B.strength('B', lvl)] : [])],
     4: [B.rest()],
     5: [wk === 0 ? B.bike(40, 'z2') : wk === 3 ? B.rest() : wk === 5 ? B.bike(20, 'open', { main: '10′ easy, 3×1′ at race effort, 3′ easy. Rack the bike, check tyres and gears.' }) : brick],
@@ -313,7 +307,7 @@ function phase4(slot, { wk, B, P }) {
 }
 
 const P5 = { // weeks-to-marathon → [Mon, Wed, Fri, Sun]
-  14: [8, 10, 8, 14], 13: [9, 10, 8, 16], 12: [10, 11, 8, 18], 11: [8, 9, 6, 14], 10: [10, 11, 8, 20], 9: [10, 12, 9, 22],
+  15: [7, 8, 6, 13], 14: [7, 8, 6, 13], 13: [8, 10, 7, 15], 12: [10, 11, 8, 18], 11: [8, 9, 6, 14], 10: [10, 11, 8, 20], 9: [10, 12, 9, 22],
   8: [11, 12, 9, 24], 7: [9, 10, 7, 16], 6: [11, 12, 9, 28], 5: [9, 10, 7, 18], 4: [11, 13, 9, 30], 3: [10, 12, 8, 24],
   2: [9, 10, 6, 16], 1: [7, 8, 5, 10], 0: [6, 6, 0, 0],
 };
@@ -331,7 +325,7 @@ function phase5(slot, { wk, B, P, wToGo, race }) {
       6: [B.longRun(10)],
     }[slot];
   }
-  const [m, k, f, su] = P5[Math.max(0, Math.min(14, wToGo))];
+  const [m, k, f, su] = P5[Math.max(0, Math.min(15, wToGo))];
   const base = wToGo >= 12;
   const key = ({
     14: B.easyRun(k, { strides: 6, title: `Easy + strides · ${k} km` }),
@@ -357,16 +351,24 @@ function phase5(slot, { wk, B, P, wToGo, race }) {
     3: B.longRun(su, { mp: 8 }), 2: B.longRun(su, { mp: 4 }), 1: B.longRun(su),
   };
   const lvl = wToGo <= 2 ? 'taper' : [11, 7, 5].includes(wToGo) ? 'light' : 'build';
-  const sLvl = lvl === 'light' ? 'build' : lvl;
+  const sLvl = lvl;
   return {
-    0: [B.easyRun(m), ...(wToGo > 0 ? [B.strength('A', sLvl)] : [])],
+    0: [B.easyRun(m)],
     1: [wToGo <= 1 ? B.swimTech('breathe', 2) : (wToGo % 2 ? B.swimTech('elbow', 3) : B.swimEndu(600))],
-    2: [key],
+    2: [key, ...(wToGo > 0 ? [B.strength('A', sLvl)] : [])],
     3: [B.bike(wToGo <= 2 ? 30 : 50, 'z2'), ...(wToGo > 0 ? [B.strength('B', sLvl)] : [])],
     4: [f ? B.easyRun(f, { strides: 6 }) : B.rest()],
     5: [wToGo === 0 ? B.easyRun(3, { strides: 4, title: 'Pre-race shakeout · 3 km' }) : B.rest()],
     6: [su ? longs[Math.min(14, wToGo)] || B.longRun(su) : B.rest()],
   }[slot];
+}
+
+function blockFor(key, wk, wToGo) {
+  if (key === 'p1') return wk === 0 ? 'return' : 'anat';
+  if (key === 'p2') return wk >= 6 ? 'taper' : 'heavy';
+  if (key === 'p3') return wk <= 5 ? 'heavy' : wk >= 11 ? 'taper' : 'maintain';
+  if (key === 'p4') return wk >= 5 ? 'taper' : 'maintain';
+  return wk === 0 ? 'return' : wToGo <= 2 ? 'taper' : wToGo >= 10 ? 'heavy' : 'maintain';
 }
 
 const PHASE_FN = { p1: phase1, p2: phase2, p3: phase3, p4: phase4, p5: phase5 };
@@ -393,7 +395,7 @@ function raceSession(r, B, P) {
 
 function checkpointSessions(cp, B, P, cfg) {
   const pc = B.pc;
-  const base = { group: 'checkpoint', kind: 'test', intensity: 'vo2', checkpoint: cp.id };
+  const base = { group: 'checkpoint', kind: 'test', intensity: 'vo2', checkpoint: cp.id, why: 'checkpoint' };
   if (cp.id === 1) return [
     mk({ ...base, sport: 'swim', title: 'CHECKPOINT 1a · Swim CSS test', minutes: 55, meters: 1400,
       target: 'Two max-effort swims: 400 m then 200 m, 10′ easy between. CSS pace per 100 m = (T400 − T200) ÷ 2.',
@@ -456,6 +458,7 @@ export function generatePlan(opts = {}) {
     if (slot === 'F') {
       sessions = [[B.mobility(25), B.bike(30, 'rec'), B.recovery('Easy walk · 40′', 40, 'Outdoors if possible.')][[3, 7, 9].indexOf(pos)]];
     } else {
+      B._block = blockFor(phase.key, wk, wToGo);
       sessions = PHASE_FN[phase.key](slot, { wk, B, P, cfg, wToGo, date: d }) || [B.rest()];
     }
     sessions = sessions.filter(Boolean);
@@ -479,6 +482,8 @@ export function generatePlan(opts = {}) {
     }
     if (FAMILY_DAYS[d] && !race && !cp) { sessions = [B.rest(FAMILY_DAYS[d] + '. Enjoy it; training resumes tomorrow.')]; tag = 'family'; }
 
+    const aRace = races.find((r) => ['riga', 'trakai', 'fall'].includes(r.id) && r.date > d && diffDays(r.date, d) <= 13);
+    if (aRace) sessions = sessions.map((s) => (s.group === 'run' && s.kind !== 'race' ? { ...s, why: 'taper' } : s));
     sessions = sessions.map((s, i) => ({ ...s, id: `${d}#${i}`, date: d, phaseId: phase.id }));
     days[d] = { date: d, phaseId: phase.id, wk, microcycle: ten ? 10 : 7, tag, sessions };
   }
@@ -515,3 +520,24 @@ export const nextEvent = (plan, date) => {
   ].filter((e) => e.date >= date).sort((a, b) => (a.date < b.date ? -1 : 1));
   return { next: ev[0] || null, nextRace: ev.find((e) => e.type === 'race') || null, nextCheckpoint: ev.find((e) => e.type === 'checkpoint') || null };
 };
+
+// ── Intensity mix (session counts, in the sense of Seiler 2010) ─────────────────────────────────
+export const isHardSession = (s) => ['vo2', 'thr', 'tempo'].includes(s.intensity)
+  || (s.intensity === 'steady' && ['run', 'bike', 'brick'].includes(s.sport) && s.kind !== 'easy')
+  || s.group === 'race' || s.group === 'checkpoint';
+const isEndurance = (s) => ['run', 'bike', 'swim', 'brick'].includes(s.sport) && s.group !== 'rest' && s.kind !== 'recovery';
+
+/** Hard vs easy endurance sessions per phase. Strength and rest are excluded. */
+export function intensityMix(plan) {
+  const out = {};
+  for (const day of Object.values(plan.days)) {
+    const o = (out[day.phaseId] ||= { phaseId: day.phaseId, easy: 0, hard: 0, minutes: 0, hardMinutes: 0 });
+    for (const s of day.sessions) {
+      if (!isEndurance(s)) continue;
+      const h = isHardSession(s);
+      if (h) { o.hard++; o.hardMinutes += s.minutes; } else o.easy++;
+      o.minutes += s.minutes;
+    }
+  }
+  return Object.values(out).map((o) => ({ ...o, share: o.hard / Math.max(1, o.hard + o.easy) }));
+}
