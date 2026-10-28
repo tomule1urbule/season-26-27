@@ -42,6 +42,8 @@ export const GROUP_LABEL = { lower: 'Lower body', upper: 'Upper body', trunk: 'T
 
 // The two weekly sessions. Order is the order they are done in.
 export const SESSIONS = {
+  S: { name: 'Full-body strength', short: 'Strength', day: 'Thursday, on its own day: three days before the Sunday long run and never next to a key session',
+       ex: (variant) => ['bss', 'slrdl', 'hipThrust', 'calfSL', ...(variant ? ['bench', 'pullover'] : ['incline', 'row']), 'sidePlank'] },
   A: { name: 'Strength A · Single-leg strength and upper body', short: 'Strength A', day: 'Wednesday evening, at least 6 hours after the key run',
        ex: ['bss', 'slrdl', 'incline', 'row', 'curl', 'sidePlank', 'calfSL'] },
   B: { name: 'Strength B · Hips, squat and shoulders', short: 'Strength B', day: 'Thursday, any time (no running that day)',
@@ -63,9 +65,10 @@ export const BLOCKS = {
 };
 
 /** Build the exercise list for a session letter and block. `deload` removes a set from every exercise. */
-export function buildExercises(which, blockKey, { deload = false } = {}) {
+export function buildExercises(which, blockKey, { deload = false, variant = 0 } = {}) {
   const blk = BLOCKS[blockKey] || BLOCKS.anat;
-  return SESSIONS[which].ex.map((id) => {
+  const list = typeof SESSIONS[which].ex === 'function' ? SESSIONS[which].ex(variant) : SESSIONS[which].ex;
+  return list.map((id) => {
     const lib = LIB[id];
     const p = blk[lib.group];
     if (!p) return null;

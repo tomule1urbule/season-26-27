@@ -120,14 +120,15 @@ export function makeBuilders(P, cfg) {
     strength: (which, level = 'build', o = {}) => {
       const block = level === 'taper' ? 'taper' : (B._block || 'anat');
       const deload = level === 'light' && block !== 'return';
-      const exs = buildExercises(which, block, { deload });
+      const variant = (B._wk || 0) % 2;
+      const exs = buildExercises(which, block, { deload, variant });
       const blk = BLOCKS[block];
       const extras = o.plyo ? [{ name: 'Pogo hops', detail: '3 × 20, quick springy contacts, stiff ankles' }, { name: 'Single-leg hops', detail: '3 × 8 each leg, land softly and stick it' }] : [];
       const label = block === 'return' ? ' (upper body and trunk, return week)' : deload ? ' (lighter week)' : '';
       return mk({
         group: 'strength', sport: 'strength', kind: 'strength', intensity: 'str', strengthDay: which, block, exercises: exs, extras,
         minutes: estMinutes(exs) + (extras.length ? 6 : 0), why: `strength_${block}`,
-        title: SESSIONS[which].name + label,
+        title: `${SESSIONS[which].name} · ${variant ? 'bench and pullover week' : 'press and row week'}${label}`,
         target: `${blk.label} block · stop every set with ${exs[0].rir} reps in reserve · tempo is lowering-pause-lifting in seconds`,
         warmup: '5′ easy bike or brisk walk, band pull-aparts, scapular push-ups, bodyweight split squats. Before the first lift do two ramp-up sets at about 50 % and 75 % of the working weight.',
         main: exs.map(exLine).join('  ·  '),
@@ -177,9 +178,9 @@ function phase1(slot, { wk, B }) {
   if (wk === 0) { // week after Larnaka
     return {
       0: [B.rest('Full rest. Walk, hydrate, eat. Soreness is normal for 3–5 days.')],
-      1: [B.recovery('Easy walk · 30′', 30, 'Flat walk. Loosen calves and quads.'), B.strength('A', 'light')],
+      1: [B.recovery('Easy walk · 30′', 30, 'Flat walk. Loosen calves and quads.')],
       2: [B.swim('Swim recovery', [S(4, 50, 'easy', 20), S(4, 50, 'kick with board', 20), S(4, 50, 'easy back/free', 15), S(1, 100, 'easy', 0)], { cssNote: 'loosen the legs' })],
-      3: [B.bike(30, 'rec'), B.strength('B', 'light')],
+      3: [B.strength('S', 'light')],
       4: [B.rest()],
       5: [B.recovery('Walk · 40′', 40, 'Easy walk, ideally outdoors.')],
       6: [B.runWalk(4)],
@@ -187,9 +188,9 @@ function phase1(slot, { wk, B }) {
   }
   return {
     0: [B.easyRun(m)],
-    1: [B.swimTech(variants[(wk - 1) % 3], swimN)],
-    2: [B.easyRun(wd, { strides: wk >= 2 ? 6 : 4 }), B.strength('A', 'build')],
-    3: [wk >= 3 ? B.swimEndu(wk >= 5 ? 600 : 400) : B.swimTech('elbow', swimN), B.strength('B', 'build')],
+    1: [wk >= 3 && wk !== 4 ? B.swimEndu(wk >= 5 ? 600 : 400) : B.swimTech(variants[(wk - 1) % 3], swimN)],
+    2: [B.easyRun(wd, { strides: wk >= 2 ? 6 : 4 })],
+    3: [B.strength('S', down ? 'light' : 'build')],
     4: [down || wk === 6 ? B.rest() : B.bike(bikeMin, wk === 2 ? 'cad' : 'z2')],
     5: [wk === 5 ? B.longRun(su) : B.rest()],
     6: [wk === 5 || wk === 6 ? B.rest() : B.longRun(su)],
@@ -218,9 +219,9 @@ function phase2(slot, { wk, B, P }) {
   const variants = ['catchup', 'elbow', 'breathe'];
   return {
     0: [m ? B.easyRun(m, { strides: 4 }) : B.rest()],
-    1: [B.swimTech(variants[wk % 3], 3 + (wk > 2 ? 1 : 0)), ...(bikeByWk[wk] ? [bikeByWk[wk]] : [])],
-    2: wk === 0 || wk === 7 ? [B.rest()] : [key, ...(wk <= 6 ? [B.strength('A', lvl, { plyo: true })] : [])],
-    3: [B.swimEndu(wk >= 5 ? 800 : wk >= 3 ? 600 : 400), B.strength('B', lvl)],
+    1: [wk >= 3 && wk !== 4 ? B.swimEndu(wk >= 5 ? 800 : 600) : B.swimTech(variants[wk % 3], 3 + (wk > 2 ? 1 : 0))],
+    2: [wk === 0 || wk === 7 ? B.rest() : key],
+    3: [wk >= 1 && wk <= 6 ? B.strength('S', wk === 4 ? 'light' : lvl, { plyo: true }) : B.rest()],
     4: [f ? B.easyRun(f, { strides: 6, title: `Easy run + strides · ${f} km` }) : B.rest()],
     5: [B.rest()],
     6: [wk === 0 ? B.longRun(12) : wk === 7 ? B.rest() : longs[wk]],
@@ -258,9 +259,9 @@ function phase3(slot, { wk, B, P }) {
   const sw = wk % 2;
   return {
     0: [m ? B.easyRun(m) : B.rest()],
-    1: [B.swimTech(variants[wk % 3], 3), ...(wk && wk < 9 && wk !== 6 ? [B.bike(wk === 8 ? 40 : 45, 'z2')] : [])],
-    2: wk === 0 ? [B.rest()] : [key, ...(wk < 12 ? [B.strength('A', lvl)] : [])],
-    3: [sw ? B.swimCss(6, 100) : B.swimEndu(wk > 4 ? 800 : 600), ...(wk && wk < 12 ? [B.strength('B', lvl)] : [])],
+    1: [wk % 4 === 1 ? B.swimCss(6, 100) : B.swimEndu(wk > 4 ? 800 : 600)],
+    2: [wk === 0 ? B.rest() : key],
+    3: [wk > 0 && wk < 12 ? B.strength('S', lvl) : B.rest()],
     4: [f ? B.easyRun(f, { strides: 6 }) : B.rest()],
     5: [wk === 12 ? B.easyRun(3, { strides: 4, title: 'Pre-race shakeout · 3 km' }) : B.rest()],
     6: [su ? (longs[wk] || B.longRun(su)) : B.rest()],
@@ -296,11 +297,11 @@ function phase4(slot, { wk, B, P }) {
     5: B.easyRun(5, { strides: 4, title: 'Pre-race run · 5 km' }),
   }[wk];
   return {
-    0: [m ? B.easyRun(m) : B.rest()],
-    1: [poolTue, ...(cadMin ? [B.bike(cadMin, wk === 3 ? 'ss' : 'cad', { main: wk === 3 ? '2×10′ sweet spot, 5′ easy.' : undefined })] : [])],
-    2: wk === 0 ? [B.strength('A', 'light')] : [key, ...(wk !== 5 ? [B.strength('A', lvl)] : [])],
-    3: [wk === 0 ? B.swimTech('elbow', 3) : ow[wk], ...(wk !== 5 ? [B.strength('B', lvl)] : [])],
-    4: [B.rest()],
+    0: [m && wk === 3 ? B.easyRun(m) : B.rest()],
+    1: [poolTue],
+    2: [wk === 0 ? B.rest() : key],
+    3: [wk === 5 ? B.rest() : B.strength('S', lvl)],
+    4: [wk === 0 ? B.swimTech('elbow', 3) : ow[wk] || B.rest()],
     5: [wk === 0 ? B.bike(40, 'z2') : wk === 3 ? B.rest() : wk === 5 ? B.bike(20, 'open', { main: '10′ easy, 3×1′ at race effort, 3′ easy. Rack the bike, check tyres and gears.' }) : brick],
     6: [wk === 0 ? B.longRun(8) : wk === 5 ? B.rest() : wk === 3 ? B.rest() : B.longRun(su)],
   }[slot];
@@ -318,11 +319,11 @@ function phase5(slot, { wk, B, P, wToGo, race }) {
     return {
       0: [B.rest('Full rest after the triathlon.')],
       1: [B.swimTech('catchup', 3)],
-      2: [B.easyRun(6)],
-      3: [B.bike(45, 'z2'), B.strength('B', 'light')],
-      4: [B.easyRun(6, { strides: 4 })],
+      2: [B.easyRun(7)],
+      3: [B.strength('S', 'light')],
+      4: [B.easyRun(7, { strides: 4 })],
       5: [B.rest()],
-      6: [B.longRun(10)],
+      6: [B.longRun(12)],
     }[slot];
   }
   const [m, k, f, su] = P5[Math.max(0, Math.min(15, wToGo))];
@@ -355,8 +356,8 @@ function phase5(slot, { wk, B, P, wToGo, race }) {
   return {
     0: [B.easyRun(m)],
     1: [wToGo <= 1 ? B.swimTech('breathe', 2) : (wToGo % 2 ? B.swimTech('elbow', 3) : B.swimEndu(600))],
-    2: [key, ...(wToGo > 0 ? [B.strength('A', sLvl)] : [])],
-    3: [B.bike(wToGo <= 2 ? 30 : 50, 'z2'), ...(wToGo > 0 ? [B.strength('B', sLvl)] : [])],
+    2: [key],
+    3: [wToGo > 0 ? B.strength('S', sLvl) : B.bike(30, 'z2')],
     4: [f ? B.easyRun(f, { strides: 6 }) : B.rest()],
     5: [wToGo === 0 ? B.easyRun(3, { strides: 4, title: 'Pre-race shakeout · 3 km' }) : B.rest()],
     6: [su ? longs[Math.min(14, wToGo)] || B.longRun(su) : B.rest()],
@@ -393,6 +394,14 @@ function raceSession(r, B, P) {
   return mk({ ...common, ...defs[r.id], km, raceId: r.id, notes: `${r.priority}-race · ${r.dist} · Goal: ${r.goal}. Race-day readiness check: if Garmin shows Red because of illness or poor sleep, decide at the start line – the plan never auto-cancels a race.` });
 }
 
+function bikeTestSession(B) {
+  const base = { group: 'checkpoint', kind: 'test', intensity: 'vo2', checkpoint: 1, why: 'checkpoint' };
+  return mk({ ...base, sport: 'bike', title: 'CHECKPOINT 1b · Indoor FTP test', minutes: 70, intensity: 'vo2',
+      target: 'FTP = 95 % of the best 20-minute average power. Needs a power source (smart trainer or pedals). If you have none, log the 20′ average HR instead.',
+      warmup: '20′ progressive: 5′ easy, 3×1′ at 100 % FTP w/ 1′ easy, 5′ easy, then a 5′ blow-out at ~120 % FTP + 10′ easy.', main: '20′ all-out but evenly paced. Eat 60 g carbs 2 h before; fan on.',
+      cooldown: '10′ easy spin.', notes: 'This is the day after the swim test, so the two never share a day. If Garmin shows Yellow/Red that morning, the engine defers the test up to 48 h.' });
+}
+
 function checkpointSessions(cp, B, P, cfg) {
   const pc = B.pc;
   const base = { group: 'checkpoint', kind: 'test', intensity: 'vo2', checkpoint: cp.id, why: 'checkpoint' };
@@ -401,10 +410,6 @@ function checkpointSessions(cp, B, P, cfg) {
       target: 'Two max-effort swims: 400 m then 200 m, 10′ easy between. CSS pace per 100 m = (T400 − T200) ÷ 2.',
       warmup: '400 m easy + 4×50 build + 100 m kick.', main: '400 m time trial → 10′ rest (easy swim 100 m) → 200 m time trial. Count strokes per 25 m on the last 100 of each.',
       cooldown: '200 m easy.', notes: 'Why not 3 km? Your longest recent continuous pool swim is ~1.5 km; a 3 km test after six weeks would measure fatigue, not efficiency. CSS plus stroke count is a better efficiency score. If you can already swim 1,500 m continuously, add 1,000 m steady after the test and log it.' }),
-    mk({ ...base, sport: 'bike', title: 'CHECKPOINT 1b · Indoor FTP test', minutes: 70, intensity: 'vo2',
-      target: 'FTP = 95 % of the best 20-minute average power. Needs a power source (smart trainer or pedals). If you have none, log the 20′ average HR instead.',
-      warmup: '20′ progressive: 5′ easy, 3×1′ at 100 % FTP w/ 1′ easy, 5′ easy, then a 5′ blow-out at ~120 % FTP + 10′ easy.', main: '20′ all-out but evenly paced. Eat 60 g carbs 2 h before; fan on.',
-      cooldown: '10′ easy spin.', notes: 'Do the bike at least 6 h after the swim test. If Garmin shows Yellow/Red that morning, the engine defers the test up to 48 h.' }),
   ];
   const defs = {
     2: { sport: 'run', title: 'CHECKPOINT 2 · 5K time trial', minutes: 50, km: 9, target: `All-out even pacing. Start around ${pc(P.five + 4)}/km and hold. Garmin 5K prediction: 21:50.`,
@@ -458,7 +463,7 @@ export function generatePlan(opts = {}) {
     if (slot === 'F') {
       sessions = [[B.mobility(25), B.bike(30, 'rec'), B.recovery('Easy walk · 40′', 40, 'Outdoors if possible.')][[3, 7, 9].indexOf(pos)]];
     } else {
-      B._block = blockFor(phase.key, wk, wToGo);
+      B._block = blockFor(phase.key, wk, wToGo); B._wk = wk;
       sessions = PHASE_FN[phase.key](slot, { wk, B, P, cfg, wToGo, date: d }) || [B.rest()];
     }
     sessions = sessions.filter(Boolean);
@@ -480,6 +485,8 @@ export function generatePlan(opts = {}) {
       if (!sessions.length) sessions = [B.rest('Rest before tomorrow’s ' + (raceByDate[tomorrow] ? 'race' : 'test') + '. Hydrate, carb up, sleep.')];
       tag = 'pre-event';
     }
+    const cp1 = checkpoints.find((c) => c.id === 1);
+    if (cp1 && d === addDays(cp1.date, 1) && !race) { sessions = [bikeTestSession(B)]; tag = 'checkpoint'; }
     if (FAMILY_DAYS[d] && !race && !cp) { sessions = [B.rest(FAMILY_DAYS[d] + '. Enjoy it; training resumes tomorrow.')]; tag = 'family'; }
 
     const aRace = races.find((r) => ['riga', 'trakai', 'fall'].includes(r.id) && r.date > d && diffDays(r.date, d) <= 13);
@@ -487,7 +494,20 @@ export function generatePlan(opts = {}) {
     sessions = sessions.map((s, i) => ({ ...s, id: `${d}#${i}`, date: d, phaseId: phase.id }));
     days[d] = { date: d, phaseId: phase.id, wk, microcycle: ten ? 10 : 7, tag, sessions };
   }
+  enforceOneAday(days);
   return { days, phases, races, checkpoints, start: SEASON.start, end: last, cfg, paces: P, tenDay };
+}
+
+// Safety net: never more than one session a day. The most important session stays, the rest are dropped
+// (templates are written so this rarely fires; the selftest asserts it never leaves two).
+const PRIO = (s) => (s.group === 'race' || s.kind === 'race' ? 9 : s.group === 'checkpoint' ? 8 : s.kind === 'long' ? 7 : s.kind === 'key' ? 6 : s.group === 'strength' ? 5 : s.group === 'brick' ? 5 : 3);
+function enforceOneAday(days) {
+  for (const d of Object.keys(days)) {
+    const ss = days[d].sessions;
+    if (ss.length < 2) continue;
+    const keep = [...ss].sort((a, b) => PRIO(b) - PRIO(a))[0];
+    days[d].sessions = [{ ...keep, id: `${d}#0` }];
+  }
 }
 
 // ── Aggregations ────────────────────────────────────────────────────────────────────────────────

@@ -21,7 +21,7 @@ export default function Method({ plan }) {
           </tbody></table>
           <p className="small muted">Hard means VO₂max, threshold, tempo or race-pace work, races and tests. Counted by session, as in the research.</p>
           <p><b>Strength.</b> Heavy lifting (5–7 repetitions, 2 in reserve, slow lowering) improves running economy in trained runners (Rønnestad and Mujika 2014; Blagrove 2018; Berryman 2018). The year is cycled: {Object.values(BLOCKS).map((b) => b.label).join(' → ')}. Loads come from your own logged sets, not from the plan.</p>
-          <p><b>Timing.</b> Strength A goes on the evening of the Wednesday key run and B on Thursday, so the two hard-leg days sit together and the Sunday long run is 3 days away. Same-day strength and running are kept at least 6 hours apart (Robineau 2016).</p>
+          <p><b>Timing.</b> One full-body session on Thursday, on its own day, three days before the Sunday long run. Nothing else is planned on any day, so there is no same-day interference between strength and endurance work (Robineau 2016). The upper-body lifts alternate every week.</p>
           <p><b>Taper.</b> Two weeks, volume down 40–60% in steps, intensity and frequency kept (Bosquet 2007). For Riga the long run is 16 km three weeks out, and the final two weeks run about 40% and 70% below your peak week (race excluded).</p>
           <p><b>Progression.</b> No fixed 10% rule (Nielsen 2014). Build two to three weeks, then ease off. Week-to-week jumps above about 35% over the previous four weeks are flagged in the tests.</p>
         </div>

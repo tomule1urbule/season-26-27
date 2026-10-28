@@ -19,7 +19,7 @@ export const hrs = (min) => `${Math.floor(min / 60)}h${String(Math.round(min % 6
 export function chipLabel(s) {
   if (s.group === 'race') return `RACE · ${s.title.replace(/^.*?· /, '').replace('Half Marathon', 'HM').replace(' Sprint Triathlon', ' tri')}`;
   if (s.group === 'checkpoint') return `TEST ${s.checkpoint}${s.sport === 'swim' ? ' swim' : s.sport === 'bike' ? ' bike' : ''}`;
-  if (s.group === 'strength') return `Strength ${s.strengthDay || (s.title.includes('B') ? 'B' : 'A')}`;
+  if (s.group === 'strength') return 'Strength';
   if (s.group === 'swim') return s.meters ? `Swim ${(s.meters / 1000).toFixed(1)}k` : `Swim ${s.minutes}′`;
   if (s.group === 'run') return s.km ? `Run ${Math.round(s.km * 10) / 10} km${s.kind === 'key' ? ' ★' : s.kind === 'long' ? ' L' : ''}` : `Run ${s.minutes}′`;
   if (s.group === 'bike') return `Bike ${s.minutes}′`;

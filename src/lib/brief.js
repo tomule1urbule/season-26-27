@@ -43,21 +43,21 @@ const B = {
     feel: 'RPE 8 for the reps, 2 between them. Fast but relaxed. You finish thinking you could do 2 more.',
     before: ['Easy eating, nothing heavy for 2 hours before.', 'Warm up fully: 15 minutes easy, drills, 3 strides. Cold legs are what injure people on speed days.', 'Know the exact rep distance; use a track, a flat road with markers or the watch lap button.'],
     during: ['Aim for equal rep times; the last rep should match the first.', 'Run tall. Quick feet, relaxed hands and face.', 'Recovery jog is slow. Do not stand still.'],
-    after: ['10 minutes easy jog, then walk.', 'Evening strength A is fine, at least 6 hours later.', 'Log the rep splits; the trend is the motivating part.'],
+    after: ['10 minutes easy jog, then walk.', 'Log the rep splits; the trend is the motivating part.'],
     wrong: ['First rep slower than target: do not chase it. Run the target for the rest or stop at 4 reps.', 'Tight hamstring or calf: stop. Speed work on a strain is how a season ends.'],
   },
   vo2: {
     feel: 'RPE 8–9 on the reps. Hard and controlled, breathing heavy by the third rep.',
     before: ['Eat a normal meal 2–3 hours before, no heavy foods.', '15 minutes easy jog, drills, 3 strides.', 'Check your readiness first: if the app shows yellow, the session turns into a steady Z2 run. That is the plan working, not failing.'],
     during: ['Start at the slow end of the rep pace. Reps 4 and 5 should feel hard but controlled, not like survival.', 'The jog recovery is slow and short of walking; keep moving.', 'Heart rate lags by 30–60 seconds; use pace for pacing and heart rate to confirm.'],
-    after: ['10 minutes easy jog and walk.', 'Eat protein and carbohydrate within an hour.', 'Evening strength A at least 6 hours after the run.', 'Log the splits and RPE.'],
+    after: ['10 minutes easy jog and walk.', 'Eat protein and carbohydrate within an hour.', 'Log the splits and RPE.'],
     wrong: ['Cannot reach target pace by rep 2: the day is wrong, not you. Convert to steady running at the same total time.', 'Pain rather than effort: stop.'],
   },
   threshold: {
     feel: 'RPE 6–7. Comfortably hard: you could say a few words but not hold a conversation.',
     before: ['Normal meal 2–3 hours before.', '15 minutes easy, drills and strides.'],
     during: ['Pace first, heart rate second. Heart rate drifts up during each rep and settles near 165–172 (your lactate-threshold heart rate is 172).', 'Equal splits across reps.', 'Jog the recoveries slowly.'],
-    after: ['10 minutes easy, walk, eat.', 'Strength A in the evening if the legs feel fine; if not, do the lighter version.'],
+    after: ['10 minutes easy, walk, eat.', 'Thursday is the strength day, so tomorrow has no other training.'],
     wrong: ['Heart rate above 175 at the target pace: slow by 5 seconds per kilometre. The target is a range, not a dare.'],
   },
   swim_tech: {
@@ -97,14 +97,14 @@ const B = {
   },
   strength_anat: {
     feel: 'RPE 6–7. Moderate loads, 2–3 reps in reserve, slow lowering.',
-    before: ['Light snack. Do it at least 6 hours after any run, ideally in the evening.', 'Warm up as printed: ramp-up sets at 50% and 75% of working weight.'],
+    before: ['Light snack. Thursday has no other training, so train whenever suits you.', 'Warm up as printed: ramp-up sets at 50% and 75% of working weight.'],
     during: ['Lower for 3 seconds on the leg lifts. Stop each set with 2–3 reps left.', 'Rest 90 seconds between sets; use the time to breathe, not the phone.', 'Tick the dots after each set.'],
     after: ['Stretch hip flexors and calves.', 'Write down weight and reps for the last set of each lift; the next session sets the load from them.'],
     wrong: ['Knees or lower back complain: reduce range of motion, not the weight; if it stays, skip the exercise.'],
   },
   strength_heavy: {
     feel: 'RPE 8 on the last set of each lift, with 2 reps left in the tank. Slow lowering, controlled lift.',
-    before: ['Do it in the evening, at least 6 hours after the key run (Wednesday) or any time on Thursday.', 'Eat 90 minutes before.', 'Ramp-up sets at 50% and 75% of the working weight.'],
+    before: ['Thursday is its own day: no run, swim or ride around it. Any time that suits you.', 'Eat 90 minutes before.', 'Ramp-up sets at 50% and 75% of the working weight.'],
     during: ['3 seconds down, 1 second pause, lift. This is what makes the load heavy with 25 kg dumbbells.', 'Rest 2 minutes after leg lifts. Short rests defeat the purpose.', 'When a set hits the top of the rep range with 2 reps left, add weight next time; the app suggests it from your log.'],
     after: ['Walk it off for 5 minutes, stretch calves and hips.', 'Eat protein within 90 minutes.', 'Log the weights and reps so the next session is set correctly.'],
     wrong: ['Cannot reach the minimum reps: lower the load 5–10% and log it. Missing reps is information, not failure.', 'Soreness above 5 of 10 the next morning: reduce one set on each lift next time.'],
@@ -119,8 +119,8 @@ const B = {
 };
 
 const CP = {
-  1: { feel: 'Two maximum-effort swims and one all-out bike, on different times of day. Hard, short, controlled.',
-    before: ['Rest the day before: no hard session.', 'Eat well and sleep; this is a test of fitness, not tiredness.', 'Swim in the morning, bike in the afternoon, at least 6 hours apart.'],
+  1: { feel: 'A maximum-effort swim test on Monday and an all-out bike test on Tuesday, one session each day. Hard, short, controlled.',
+    before: ['Rest the day before: no hard session.', 'Eat well and sleep; this is a test of fitness, not tiredness.', 'The swim is on 28 Dec and the bike test on 29 Dec, one a day.'],
     during: ['Swim: 400 m time trial, 10 minutes easy, then 200 m time trial. Even pacing; do not sprint the first 100.', 'Bike: 20 minutes as hard as you can sustain evenly. Start at 90% of your effort and build.', 'Record strokes per 25 m in the last 100 of each swim.'],
     after: ['Enter times and power in the Progress tab: the app recalculates your swim pace and FTP.', 'Easy day next. You will feel flat; that is normal.'],
     wrong: ['If the app shows yellow or red in the morning, the test is deferred up to 48 hours.', 'No power meter: log the 20-minute average heart rate instead and use effort-based zones.'] },

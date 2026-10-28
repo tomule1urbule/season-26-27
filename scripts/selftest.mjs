@@ -25,7 +25,9 @@ console.log(`days: ${all.length}, sessions: ${all.reduce((a, d) => a + plan.days
 // 2. Races & checkpoints on the right dates, with the right group
 for (const r of plan.races.filter((r) => r.id !== 'larnaka')) ok(plan.days[r.date].sessions[0].group === 'race', `race on ${r.date}`);
 for (const c of plan.checkpoints) ok(plan.days[c.date].sessions[0].group === 'checkpoint', `checkpoint ${c.id} on ${c.date}`);
-ok(plan.days['2026-12-28'].sessions.length === 2, 'CP1 has swim + bike');
+ok(plan.days['2026-12-28'].sessions.length === 1 && plan.days['2026-12-29'].sessions[0].sport === 'bike' && plan.days['2026-12-29'].sessions.length === 1, 'CP1: swim test on the 28th, bike test alone on the 29th');
+const multi = Object.keys(plan.days).filter((d) => plan.days[d].sessions.filter((s) => s.group !== 'rest').length > 1);
+ok(multi.length === 0, 'never more than one session a day: ' + multi.slice(0, 5).join(', '));
 console.log('checkpoints:', plan.checkpoints.map((c) => `${c.id}:${c.date}(${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][dow(c.date)]})`).join(' '));
 
 // 3. Day before a race/checkpoint carries no key/long/test/strength
@@ -109,7 +111,8 @@ console.log('weekly est. TSS min/median/max:', Math.min(...tss), tss.sort((a, b)
 
 // 12. Evidence-based structure ─────────────────────────────────────────────────────────────────
 // 12a. 80/20: hard share of endurance sessions per phase, and at most 3 hard sessions in a normal week
-for (const m of intensityMix(plan).filter((x) => x.phaseId >= 1)) ok(m.share <= 0.36, `phase ${m.phaseId} hard share ${Math.round(m.share * 100)}% is above 36%`);
+console.log('hard share by minutes:', intensityMix(plan).filter((x) => x.phaseId >= 1).map((m) => `${m.phaseId}:${Math.round(m.hardMinutes / m.minutes * 100)}%`).join(' '));
+for (const m of intensityMix(plan).filter((x) => x.phaseId >= 1)) ok(m.share <= 0.40, `phase ${m.phaseId} hard share ${Math.round(m.share * 100)}% is above 40% (fewer, larger sessions per week now, one a day)`);
 console.log('hard share by phase:', intensityMix(plan).filter((x) => x.phaseId >= 1).map((m) => `${m.phaseId}:${Math.round(m.share * 100)}%`).join(' '));
 const hardPerWeek = {};
 for (const [d, day] of Object.entries(plan.days)) for (const s of day.sessions) if (isHardSession(s) && s.group !== 'race' && s.group !== 'checkpoint') hardPerWeek[mondayOf(d)] = (hardPerWeek[mondayOf(d)] || 0) + 1;
@@ -136,11 +139,11 @@ for (const d of strengthDays) for (const s of plan.days[d].sessions.filter((x) =
   ok(!/^Strength [AB]$/.test(s.title) && /·/.test(s.title), 'strength has a proper name: ' + s.title);
   ok(s.why && WHY[s.why], 'strength has an evidence entry ' + d);
 }
-const legDay = strengthDays.filter((d) => plan.days[d].sessions.some((s) => s.strengthDay === 'A' && s.exercises.some((e) => LIB[e.id].group === 'lower')));
+const legDay = strengthDays.filter((d) => plan.days[d].sessions.some((s) => s.strengthDay === 'S' && s.exercises.some((e) => LIB[e.id].group === 'lower')));
 ok(legDay.every((d) => !hardRun(addDays(d, 1))), 'heavy leg strength is never the day before a key/long run: ' + legDay.filter((d) => hardRun(addDays(d, 1))).join(', '));
-const ret = plan.days['2026-11-17'].sessions.find((s) => s.group === 'strength');
+const ret = plan.days['2026-11-19'].sessions.find((s) => s.group === 'strength');
 ok(ret && ret.exercises.every((e) => LIB[e.id].group !== 'lower'), 'return week is upper body and trunk only');
-const heavyA = plan.days['2027-01-13'].sessions.find((s) => s.group === 'strength');
+const heavyA = plan.days['2027-01-14'].sessions.find((s) => s.group === 'strength');
 ok(heavyA.block === 'heavy' && heavyA.exercises.find((e) => e.id === 'bss').reps[1] <= 7, 'January lower body is in the heavy block (5-7 reps)');
 // 12f. strength progression from the log
 const base = suggestLoad({ id: 'bss', reps: [5, 7], rir: 2 }, undefined);
