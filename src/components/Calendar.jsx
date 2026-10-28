@@ -12,7 +12,7 @@ function Cell({ plan, d, today, logged, onOpen }) {
   return (
     <button className={`day ${d === today ? 'today' : ''} ${past ? 'past' : ''}`} onClick={() => onOpen(d)} aria-label={`${fmtLong(d)}: ${day.sessions.map((s) => s.title).join(', ')}`}>
       <span className="dn"><span>{fmtDow(d)} {fmtShort(d)}</span>{logged && <span title="Logged">✓</span>}</span>
-      {day.sessions.map((s) => <span key={s.id} className={`chip ${s.group === 'checkpoint' || s.group === 'race' ? 'cp' : ''}`} style={{ '--sc': gc(s.group) }}>{chipLabel(s)}</span>)}
+      {day.sessions.map((s) => <span key={s.id} className={`chip ${s.group === 'checkpoint' || s.group === 'race' ? 'cp' : ''} ${s.group === 'rest' ? 'rest-chip' : ''}`} style={{ '--sc': gc(s.group) }}>{chipLabel(s)}</span>)}
     </button>
   );
 }
@@ -50,9 +50,8 @@ export default function Calendar({ plan, today, log, onJump }) {
       <section className="card">
         <div className="spread">
           <div><h2>Programme look-ahead</h2><p className="small muted">Expand a phase to see its weeks. Tap a day for the full session.</p></div>
-          <div className="row" role="group" aria-label="Microcycle view">
-            <button className={`btn sm ${mode === 7 ? 'primary' : ''}`} aria-pressed={mode === 7} onClick={() => setMode(7)}>7-day weeks</button>
-            <button className={`btn sm ${mode === 10 ? 'primary' : ''}`} aria-pressed={mode === 10} onClick={() => setMode(10)}>10-day blocks</button>
+          <div role="group" aria-label="Microcycle view">
+            <div className="seg"><button aria-pressed={mode === 7} onClick={() => setMode(7)}>7-day weeks</button><button aria-pressed={mode === 10} onClick={() => setMode(10)}>10-day blocks</button></div>
           </div>
         </div>
         <div style={{ marginTop: 12 }}><Legend /></div>
@@ -65,26 +64,25 @@ export default function Calendar({ plan, today, log, onJump }) {
         const state = today > p.end ? 'Done' : today >= p.start ? 'Current' : 'Upcoming';
         return (
           <section className="card flush" key={p.id}>
-            <button className="phase-h" aria-expanded={isOpen} onClick={() => setOpen({ ...open, [p.id]: !isOpen })}>
-              <span className="phase-bar" style={{ background: p.color }} />
+            <button className="phase-h" style={{ '--pc': p.color }} aria-expanded={isOpen} onClick={() => setOpen({ ...open, [p.id]: !isOpen })}>
               <span style={{ flex: 1 }}>
-                <b style={{ fontSize: 16 }}>Phase {p.id} · {p.name}</b><br />
+                <span className="ttl">Phase {p.id} · {p.name}</span><br />
                 <span className="small muted">{fmtShort(p.start)} → {fmtShort(p.end)} · {Math.round(days.length / 7)} weeks · {hrs(tot.m)} planned · {Math.round(tot.km)} km running{p.race ? ` · ${p.race}` : ''}</span>
               </span>
               <span className="pill">{state}</span>
-              <span aria-hidden="true">{isOpen ? '▾' : '▸'}</span>
+              <span className="chev" aria-hidden="true">▸</span>
             </button>
             {isOpen && (
-              <div className="cal-body">
-                <p className="small ink2" style={{ marginBottom: 6 }}>{p.focus}</p>
+              <div className="cal-body" style={{ '--pc': p.color }}>
+                <p className="focus">{p.focus}</p>
+                {mode === 7 && <div className="cal-heads"><span />{<div className="cal-grid c7">{DOW.map((x) => <div key={x} className="cal-head">{x}</div>)}</div>}</div>}
                 {blocksFor(plan, p, mode).map((b, bi) => {
                   const t = b.days.reduce((a, d) => { const x = dayTotals(plan.days[d]); return { m: a.m + x.minutes, km: a.km + x.km, tss: a.tss + x.tss }; }, { m: 0, km: 0, tss: 0 });
                   const cols = mode;
                   return (
-                    <div key={b.key}>
-                      <div className="block-label"><b>{fmtShort(b.days[0])} – {fmtShort(b.days[b.days.length - 1])}</b><span>{hrs(t.m)}</span><span>{Math.round(t.km)} km run</span><span>~{Math.round(t.tss)} TSS</span>{b.days.some((d) => plan.days[d].microcycle === 10) && <span className="pill">10-day block</span>}</div>
+                    <div key={b.key} className={`block m${mode}`} style={mode === 10 ? { gridTemplateColumns: 'minmax(0,1fr)' } : undefined}>
+                      <div className="block-label"><b>{fmtShort(b.days[0])} – {fmtShort(b.days[b.days.length - 1])}</b><span>{hrs(t.m)} · {Math.round(t.km)} km run</span><span>~{Math.round(t.tss)} TSS</span><span className="vol" aria-hidden="true"><i style={{ width: `${Math.min(100, (t.m / 60 / 9) * 100)}%` }} /></span>{b.days.some((d) => plan.days[d].microcycle === 10) && <span className="pill">10-day block</span>}</div>
                       <div className={`cal-grid c${cols}`}>
-                        {mode === 7 && bi === 0 && DOW.map((x) => <div key={x} className="cal-head">{x}</div>)}
                         {mode === 7 && Array.from({ length: b.pad }).map((_, i) => <div key={'p' + i} />)}
                         {b.days.map((d) => <Cell key={d} plan={plan} d={d} today={today} logged={loggedDays.has(d)} onOpen={setSel} />)}
                       </div>

@@ -1,48 +1,45 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Ribbon from './Ribbon.jsx';
-import { SessionCard, LEVEL, chipLabel, gc } from './ui.jsx';
+import { SessionBoard, Ring, Sparkline, LEVEL, chipLabel, gc } from './ui.jsx';
 import { adaptSession, applyTrim, microcycleAdvice, RULES } from '../lib/adapt.js';
 import { addDays, diffDays, fmtLong, fmtShort, fmtDow, mondayOf } from '../lib/dates.js';
 import { nextEvent, phaseOn, sessionsOn } from '../lib/plan.js';
 
-function Banner({ decision, headline, manual }) {
-  const L = LEVEL[decision.level];
-  return (
-    <div className={`banner ${L.cls}`} role="status">
-      <div className="ic" aria-hidden="true">{L.icon}</div>
-      <h3>{L.label}{headline ? ` — ${headline}` : ''}</h3>
-      <div>
-        <ul>{decision.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
-        {decision.trim > 0 && <p className="small" style={{ marginTop: 6 }}><b>Overreach warning:</b> next 7 days are trimmed by {Math.round(decision.trim * 100)}%.</p>}
-        {manual && <p className="small muted" style={{ marginTop: 4 }}>Using the numbers you typed in for this day.</p>}
-      </div>
-    </div>
-  );
-}
+const upTo = (arr, date, n) => (arr || []).filter((x) => x.d <= date).slice(-n);
 
-function GarminWidget({ metrics, garmin, scenario, date }) {
+function Readiness({ decision, headline, metrics, garmin, scenario, date, trim }) {
   const m = metrics || {};
+  const L = LEVEL[decision.level] || LEVEL.unknown;
+  const live = scenario === 'live' && garmin;
   const asOf = garmin?.meta?.asOf;
   const age = asOf ? diffDays(date, asOf.slice(0, 10)) : null;
-  const rl = m.readiness;
-  const acwr = m.acwr;
   const tone = (v, lo, hi) => (v == null ? '' : v >= hi ? 'st-good' : v >= lo ? 'st-warn' : 'st-crit');
+  const acwr = m.acwr;
+  const hrv = live ? upTo(garmin.hrv, date, 14).map((x) => x.last) : [];
+  const slp = live ? upTo(garmin.sleep, date, 14).map((x) => x.score) : [];
+  const ld = live ? upTo(garmin.load, date, 14).map((x) => (x.ctl ? x.atl / x.ctl : null)) : [];
+  const source = scenario !== 'live' ? `Demo readings (${scenario})` : m.manual ? 'Using the numbers you typed in' : asOf ? `Garmin snapshot ${fmtShort(asOf.slice(0, 10))}, ${asOf.slice(11, 16)}` : 'No Garmin snapshot loaded';
   return (
-    <section className="card">
-      <div className="card-h">
-        <h2>Garmin readings</h2>
-        <span className="pill">{scenario !== 'live' ? `Demo: ${scenario}` : asOf ? `Snapshot ${fmtShort(asOf.slice(0, 10))} ${asOf.slice(11, 16)}` : 'No snapshot loaded'}</span>
-      </div>
-      {!metrics && <div className="empty small">No Garmin readings for {fmtShort(date)}. {age > 0 ? `The snapshot is ${age} day${age > 1 ? 's' : ''} old – ask Claude to refresh it, or type this morning’s numbers into Quick entry.` : ''}</div>}
-      {metrics && (
-        <div className="tiles">
-          <div className="tile"><div className="k">Training readiness</div><div className={`v num ${tone(rl, 50, 75)}`}>{rl ?? '–'}</div><div className="s">{m.readinessFeedback ? m.readinessFeedback.replace(/_/g, ' ').toLowerCase() : rl != null ? (rl > 75 ? 'high' : rl >= 50 ? 'moderate' : 'low') : ''}</div><div className="bar"><i style={{ width: `${rl ?? 0}%` }} /></div></div>
-          <div className="tile"><div className="k">HRV status</div><div className={`v ${m.hrvStatus === 'BALANCED' ? 'st-good' : m.hrvStatus === 'LOW' ? 'st-warn' : m.hrvStatus ? 'st-crit' : ''}`} style={{ fontSize: 20, paddingTop: 4 }}>{m.hrvStatus ? m.hrvStatus.toLowerCase() : '–'}</div><div className="s num">{m.hrvLast ? `last night ${m.hrvLast} ms` : ''}{m.hrvWeekly ? ` · 7-day ${m.hrvWeekly}` : ''}</div></div>
-          <div className="tile"><div className="k">Sleep score</div><div className={`v num ${tone(m.sleepScore, 60, 80)}`}>{m.sleepScore ?? '–'}</div><div className="s num">{m.sleepHours ? `${m.sleepHours} h` : ''}{m.rhr ? ` · RHR ${m.rhr}` : ''}</div></div>
-          <div className="tile"><div className="k">Load ratio (7d ÷ 28d)</div><div className={`v num ${acwr == null ? '' : acwr > RULES.redAcwr ? 'st-crit' : acwr > RULES.cautionAcwr ? 'st-warn' : 'st-good'}`}>{acwr != null ? acwr.toFixed(2) : '–'}</div><div className="s num">{m.acute ? `acute ${m.acute} · chronic ${m.chronic}` : `red above ${RULES.redAcwr}`}</div></div>
+    <section className="card ready" aria-label="Readiness">
+      <div className="ready-top">
+        <Ring value={m.readiness}><b>{m.readiness ?? '–'}</b><span>readiness</span></Ring>
+        <div>
+          <div className={`state-word ${L.cls || 'unknown'}`}>{decision.level === 'unknown' ? 'No readings yet' : L.label}</div>
+          <p className="state-sub">{headline ? headline.charAt(0).toUpperCase() + headline.slice(1) : 'Type this morning’s numbers below, or sync Garmin.'}</p>
         </div>
+      </div>
+      {decision.reasons?.length > 0 && <ul className="reasons">{decision.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>}
+      {trim > 0 && <div className="trim-note"><b>Overreach warning:</b> the next 7 days are trimmed by {Math.round(trim * 100)}%.</div>}
+      {metrics ? (
+        <div className="metrics">
+          <div className="metric"><div><div className="k">Overnight HRV</div><div className="s num">{m.hrvStatus ? m.hrvStatus.toLowerCase() : '–'}{m.hrvWeekly ? ` · 7-day ${m.hrvWeekly} ms` : ''}</div></div><div className={`v ${m.hrvStatus === 'BALANCED' ? 'st-good' : m.hrvStatus === 'LOW' ? 'st-warn' : m.hrvStatus ? 'st-crit' : ''}`}>{m.hrvLast ?? '–'}</div><Sparkline values={hrv} /></div>
+          <div className="metric"><div><div className="k">Sleep score</div><div className="s num">{m.sleepHours ? `${m.sleepHours} h` : ''}{m.rhr ? ` · resting HR ${m.rhr}` : ''}</div></div><div className={`v ${tone(m.sleepScore, 60, 80)}`}>{m.sleepScore ?? '–'}</div><Sparkline values={slp} /></div>
+          <div className="metric"><div><div className="k">Load ratio (7d ÷ 28d)</div><div className="s num">{m.acute ? `acute ${m.acute} · chronic ${m.chronic}` : `red above ${RULES.redAcwr}`}</div></div><div className={`v ${acwr == null ? '' : acwr > RULES.redAcwr ? 'st-crit' : acwr > RULES.cautionAcwr ? 'st-warn' : 'st-good'}`}>{acwr != null ? acwr.toFixed(2) : '–'}</div><Sparkline values={ld} /></div>
+        </div>
+      ) : (
+        <div className="empty small">No Garmin readings for {fmtShort(date)}. {age > 0 ? `The snapshot is ${age} day${age > 1 ? 's' : ''} old.` : ''} Ask Claude to refresh it, or use Quick entry below.</div>
       )}
-      {metrics && m.recoveryHours != null && <p className="small muted" style={{ marginTop: 10 }}>Garmin recovery time left: {m.recoveryHours} h.</p>}
+      <div className="src">{source}{m.recoveryHours != null ? ` · recovery time left ${m.recoveryHours} h` : ''}</div>
     </section>
   );
 }
@@ -52,9 +49,9 @@ function QuickEntry({ date, manual, setManual }) {
   const set = (k, v) => setManual({ ...manual, [date]: { ...cur, [k]: v } });
   const clear = () => { const n = { ...manual }; delete n[date]; setManual(n); };
   return (
-    <section className="card">
+    <section className="card adjust">
       <div className="card-h"><h2>Quick entry</h2>{manual[date] && <button className="btn sm ghost" onClick={clear}>Clear</button>}</div>
-      <p className="small ink2" style={{ marginBottom: 10 }}>No sync today? Type what your watch shows this morning. These override Garmin data for {fmtShort(date)} only.</p>
+      <p className="hint">No sync today? Type what your watch shows this morning. These override Garmin data for {fmtShort(date)} only.</p>
       <div className="grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 }}>
         <label className="f">Readiness<input type="number" min="0" max="100" value={cur.readiness ?? ''} onChange={(e) => set('readiness', e.target.value)} /></label>
         <label className="f">Sleep score<input type="number" min="0" max="100" value={cur.sleepScore ?? ''} onChange={(e) => set('sleepScore', e.target.value)} /></label>
@@ -68,32 +65,11 @@ function QuickEntry({ date, manual, setManual }) {
   );
 }
 
-function Progress({ plan, date }) {
-  const ph = phaseOn(plan, date);
-  const ev = nextEvent(plan, date);
-  const pct = ph ? Math.min(100, Math.max(0, (diffDays(date, ph.start) / Math.max(1, diffDays(ph.end, ph.start))) * 100)) : 0;
-  const left = ph ? Math.max(0, diffDays(ph.end, date)) : 0;
-  const days = (e) => diffDays(e.date, date);
-  return (
-    <section className="card">
-      <div className="card-h"><h2>{ph ? ph.name : 'Season 26/27'}</h2>{ph && <span className="pill num">{Math.round(pct)}%</span>}</div>
-      {ph && <>
-        <div className="bar" style={{ height: 8 }}><i style={{ width: `${pct}%` }} /></div>
-        <p className="small ink2" style={{ marginTop: 8 }}>{fmtShort(ph.start)} → {fmtShort(ph.end)} · {left} days left. {ph.focus}</p>
-      </>}
-      <div className="stack" style={{ marginTop: 14 }}>
-        {ev.nextRace && <div className="spread"><span><b>{ev.nextRace.name}</b><br /><span className="small muted">{ev.nextRace.goal}</span></span><span className="num" style={{ fontSize: 22, fontWeight: 650 }}>{days(ev.nextRace)}<span className="small muted"> d</span></span></div>}
-        {ev.nextCheckpoint && <div className="spread"><span><b>{ev.nextCheckpoint.name}</b><br /><span className="small muted">{fmtShort(ev.nextCheckpoint.date)}</span></span><span className="num" style={{ fontSize: 22, fontWeight: 650 }}>{days(ev.nextCheckpoint)}<span className="small muted"> d</span></span></div>}
-      </div>
-    </section>
-  );
-}
-
 function Advisor({ advice, settings, setSettings, date, plan }) {
   const active = settings.tenDay.some((t) => date >= t.from && date < addDays(t.from, t.blocks * 10));
   const nextMon = (() => { const m = addDays(mondayOf(date), 7); return m < plan.start ? plan.start : m; })();
   return (
-    <section className="card">
+    <section className="card adjust">
       <div className="card-h"><h2>Microcycle</h2><span className="pill">{active ? '10-day block active' : '7-day weeks'}</span></div>
       <p className="small ink2">{advice.recommend === 10 ? `Fatigue or life load is high (${advice.reasons.join('; ')}). A 10-day block adds three easy recovery days per block so the same sessions are spread over more days.` : advice.thin ? 'Not enough Garmin days in the last week to judge fatigue, so standard 7-day weeks stay. Sync Garmin or tick “high life load” in Settings.' : 'Recovery looks fine, so keep standard 7-day weeks. The advisor re-checks the last 7 days of Garmin data every time you open the app.'}</p>
       <div className="row" style={{ marginTop: 10 }}>
@@ -104,57 +80,74 @@ function Advisor({ advice, settings, setSettings, date, plan }) {
   );
 }
 
-export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, goLog, openDay }) {
+export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, goLog, openDay, step, backToToday, isPreview }) {
   const sessions = sessionsOn(plan, date);
   const ph = phaseOn(plan, date);
   const results = useMemo(() => sessions.map((s) => adaptSession(s, decision, metrics)), [sessions, decision, metrics]);
   const head = results.find((r) => r.session.group !== 'rest') || results[0];
   const advice = useMemo(() => microcycleAdvice(history.filter((h) => h.d <= date && diffDays(date, h.d) < 7), settings.lifeLoadHigh), [history, settings.lifeLoadHigh, date]);
-  const upcoming = [1, 2, 3, 4, 5, 6, 7].map((k) => addDays(date, k));
+  const week = [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(date, k));
   const larnaka = plan.races.find((r) => r.id === 'larnaka');
+  const ev = nextEvent(plan, date);
+  const days = (e) => diffDays(e.date, date);
+  const wk = plan.days[date]?.wk;
   return (
     <div className="stack">
-      <section className="card"><div className="card-h"><h2>Season at a glance</h2><span className="small muted">Flags are races, diamonds are fitness checkpoints</span></div><Ribbon plan={plan} date={date} /></section>
-      <div className="grid g-dash">
-        <div className="stack">
-          <section className="card">
-            <div className="card-h"><div><h2>{fmtLong(date)}</h2><span className="small muted">{ph ? ph.name : ''}{plan.days[date] ? ` · week ${plan.days[date].wk + 1} of phase` : ''}{plan.days[date]?.microcycle === 10 ? ' · 10-day block' : ''}</span></div></div>
-            {sessions.length > 0 && <Banner decision={decision} headline={head?.headline} manual={metrics?.manual} />}
-            <div style={{ marginTop: sessions.length ? 14 : 0 }}>
-              {sessions.length === 0 && (
-                <div className="empty">
-                  {date < plan.start
-                    ? <>Your Season 26/27 programme starts <b>Monday {fmtShort(plan.start)}</b>, the day after Larnaka. Until then your current Garmin schedule covers the taper and race ({diffDays(larnaka.date, date)} days to go). Use the date control in the header to preview any day of the programme.</>
-                    : 'No sessions are planned for this date.'}
-                </div>
-              )}
-              {results.map((r, i) => <SessionCard key={sessions[i].id} s={sessions[i]} result={r} onLog={goLog} />)}
-            </div>
-          </section>
+      <div className="daybar">
+        <div>
+          <div className="when">
+            <h1>{fmtLong(date)}</h1>
+          </div>
+          <p className="sub">{ph ? ph.name : ''}{wk != null ? ` · week ${wk + 1} of the phase` : ''}{plan.days[date]?.microcycle === 10 ? ' · 10-day block' : ''}</p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <div className="stepper"><button className="btn sm icon" onClick={() => step(-1)} aria-label="Previous day">‹</button><button className="btn sm icon" onClick={() => step(1)} aria-label="Next day">›</button></div>
+            {isPreview && <button className="btn sm" onClick={backToToday}>Back to today</button>}
+            {isPreview && <span className="pill" style={{ background: 'var(--warn-bg)' }}>Previewing another day</span>}
+          </div>
         </div>
-        <div className="stack">
-          <GarminWidget metrics={metrics} garmin={garmin} scenario={scenario} date={date} />
-          <Progress plan={plan} date={date} />
-          <Advisor advice={advice} settings={settings} setSettings={setSettings} date={date} plan={plan} />
-          <QuickEntry date={date} manual={manual} setManual={setManual} />
+        <div className="countdowns">
+          {ev.nextRace && <div className="cd"><div className="n" style={{ background: 'var(--s-race)' }}>{days(ev.nextRace)}<small>days</small></div><div className="t">{ev.nextRace.name}<span>{ev.nextRace.goal || fmtShort(ev.nextRace.date)}</span></div></div>}
+          {ev.nextCheckpoint && <div className="cd"><div className="n" style={{ background: 'var(--s-checkpoint)', color: '#1b1300' }}>{days(ev.nextCheckpoint)}<small>days</small></div><div className="t">{ev.nextCheckpoint.name.replace(/^Checkpoint (\d): /, 'Test $1 · ')}<span>{fmtShort(ev.nextCheckpoint.date)}</span></div></div>}
         </div>
       </div>
-      <section className="card">
-            <div className="card-h"><h2>Next 7 days</h2>{decision.trim > 0 && <span className="pill" style={{ background: 'var(--warn-bg)' }}>trimmed {Math.round(decision.trim * 100)}%</span>}</div>
-            {upcoming.every((d) => !sessionsOn(plan, d).length) && <div className="empty small">Nothing from this programme is scheduled in the next 7 days. Your Garmin calendar covers the taper and race until {fmtShort(plan.start)}.</div>}
-            <div className="stack" style={{ marginTop: 0 }}>
-              {upcoming.filter((d) => sessionsOn(plan, d).length).map((d) => {
-                const ss = sessionsOn(plan, d).map((s) => applyTrim(s, decision.trim));
-                return (
-                  <button key={d} className="btn ghost" style={{ display: 'grid', gridTemplateColumns: '64px 1fr', gap: 10, textAlign: 'left', width: '100%', padding: '4px 6px' }} onClick={() => openDay(d)}>
-                    <span className="small muted">{fmtDow(d)} {fmtShort(d)}</span>
-                    <span className="row" style={{ gap: 6 }}>{ss.length ? ss.map((s) => <span key={s.id} className="chip" style={{ '--sc': gc(s.group) }}>{chipLabel(s)}{s.trimmed ? ` −${s.trimmed}%` : ''}</span>) : <span className="muted small">–</span>}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
 
+      <div className="grid g-today">
+        <div className="board-col">
+          {sessions.length === 0 && (
+            <div className="board empty-day">
+              <h3>{date < plan.start ? 'Taper and race week' : 'Nothing planned'}</h3>
+              <p className="rest-note">{date < plan.start
+                ? <>Your Season 26/27 programme starts <b>Monday {fmtShort(plan.start)}</b>, the day after Larnaka ({diffDays(larnaka.date, date)} days to go). Until then your Garmin schedule covers the taper and race. Use the arrows to step into the programme.</>
+                : 'No sessions are planned for this date.'}</p>
+            </div>
+          )}
+          {results.map((r, i) => <SessionBoard key={sessions[i].id} s={sessions[i]} result={r} onLog={goLog} minor={i > 0} />)}
+        </div>
+        <Readiness decision={decision} headline={head?.headline} metrics={metrics} garmin={garmin} scenario={scenario} date={date} trim={decision.trim} />
+      </div>
+
+      <section className="card">
+        <div className="card-h"><h2>The week ahead</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
+        <div className="wk">
+          {week.map((d, i) => {
+            const ss = sessionsOn(plan, d).map((s) => applyTrim(s, i === 0 ? 0 : decision.trim));
+            return (
+              <button key={d} className={`wk-day ${i === 0 ? 'today' : ''}`} onClick={() => openDay(d)} aria-label={`${fmtLong(d)}: ${ss.map(chipLabel).join(', ') || 'nothing planned'}`}>
+                <span className="d"><span>{i === 0 ? (isPreview ? fmtDow(d) : 'Today') : fmtDow(d)}</span><b>{d.slice(8).replace(/^0/, '')}</b></span>
+                {ss.map((s) => <span key={s.id} className={`blk ${s.group === 'rest' ? 'rest' : ''} ${s.group === 'checkpoint' ? 'ck' : ''}`} style={{ '--sc': gc(s.group) }}>{chipLabel(s)}{s.minutes > 0 && s.group !== 'rest' ? <small>{s.minutes >= 90 ? `${Math.floor(s.minutes / 60)}h${String(s.minutes % 60).padStart(2, '0')}` : `${s.minutes} min`}{s.trimmed ? ` · −${s.trimmed}%` : ''}</small> : null}</span>)}
+                {ss.length === 0 && <span className="none">{d < plan.start ? 'Garmin plan' : 'Nothing planned'}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="card"><div className="card-h"><h2>The season</h2><span className="sec-note">Bands are phases, flags are races, diamonds are fitness tests</span></div><Ribbon plan={plan} date={date} /></section>
+
+      <div className="grid g-2">
+        <Advisor advice={advice} settings={settings} setSettings={setSettings} date={date} plan={plan} />
+        <QuickEntry date={date} manual={manual} setManual={setManual} />
+      </div>
     </div>
   );
 }

@@ -9,7 +9,8 @@ import { classify } from './lib/adapt.js';
 import { recalibrate } from './lib/zones.js';
 import { loadGarmin, metricsForDate, levelHistory } from './lib/garmin.js';
 import { DEFAULT_FALL_MARATHON, LOCAL_KEYS } from './lib/config.js';
-import { todayStr } from './lib/dates.js';
+import { todayStr, addDays } from './lib/dates.js';
+import { TAB_ICONS } from './components/ui.jsx';
 import { useStored, readJSON } from './lib/store.js';
 
 const SCENARIOS = {
@@ -31,6 +32,7 @@ export default function App() {
   const [preview, setPreview] = useState('');
   const [scenario, setScenario] = useState('live');
   const [draft, setDraft] = useState(null);
+  const [tools, setTools] = useState(false);
   const date = preview || realToday;
 
   useEffect(() => { loadGarmin().then((r) => setGarmin({ loading: false, ...r })); }, []);
@@ -40,6 +42,9 @@ export default function App() {
   const plan = useMemo(() => generatePlan({ fallMarathon: settings.fallMarathon, tenDay: settings.tenDay, paces: recal.paces, cfg: recal.cfg }), [settings.fallMarathon, settings.tenDay, recal]);
   const metrics = useMemo(() => (scenario === 'live' ? metricsForDate(garmin.data, date, manual[date]) : SCENARIOS[scenario]), [garmin.data, date, manual, scenario]);
   const decision = useMemo(() => classify(metrics), [metrics]);
+  useEffect(() => { document.documentElement.style.setProperty('--state', { green: 'var(--good)', yellow: 'var(--warn)', red: 'var(--crit)' }[decision.level] || 'var(--line-2)'); }, [decision.level]);
+  useEffect(() => { if (!tools) return; const k = (e) => e.key === 'Escape' && setTools(false); const c = (e) => !e.target.closest?.('.pop-wrap') && setTools(false); window.addEventListener('keydown', k); window.addEventListener('mousedown', c); return () => { window.removeEventListener('keydown', k); window.removeEventListener('mousedown', c); }; }, [tools]);
+  const step = (n) => { const d = addDays(date, n); setPreview(d === realToday ? '' : d); };
   const history = useMemo(() => levelHistory(garmin.data), [garmin.data]);
 
   const backup = { settings, cpResults, log, manual };
@@ -51,20 +56,29 @@ export default function App() {
     <>
       <header className="header">
         <div className="header-in">
-          <div className="brand">Season 26/27<small>Adaptive endurance coach</small></div>
+          <div className="brand">
+            <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect x="1.5" y="6.5" width="29" height="19" rx="9.5" fill="none" stroke="currentColor" strokeWidth="2.4" /><rect x="7" y="11" width="18" height="10" rx="5" fill="none" stroke="currentColor" strokeWidth="1.6" opacity=".45" /><circle cx="23" cy="16" r="3.2" fill="var(--state)" stroke="var(--surface)" strokeWidth="1.5" /></svg>
+            <div>Season 26/27<small>Adaptive endurance coach</small></div>
+          </div>
           <nav className="tabs" role="tablist" aria-label="Sections">
-            {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className="tab" onClick={() => setTab(k)}>{l}</button>)}
+            {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className="tab" onClick={() => { setTab(k); window.scrollTo({ top: 0 }); }}>{TAB_ICONS[k]}<span>{l}</span></button>)}
           </nav>
-          <div className="ctrls">
-            <label className="small muted" title="Preview any day of the programme">Date <input type="date" value={date} onChange={(e) => setPreview(e.target.value === realToday ? '' : e.target.value)} /></label>
-            <label className="small muted" title="Try the adaptive rules with sample Garmin readings">Garmin <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
-              <option value="live">Live data</option><option value="green">Demo: green</option><option value="yellow">Demo: yellow</option><option value="red">Demo: red</option></select></label>
-            <button className="btn sm" onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark')} title="Theme">{theme === 'auto' ? 'Theme: auto' : theme === 'dark' ? 'Dark' : 'Light'}</button>
+          <div className="pop-wrap">
+            <button className="btn sm" aria-expanded={tools} onClick={() => setTools(!tools)}>{preview || scenario !== 'live' ? 'Preview on' : 'Preview'} ▾</button>
+            {tools && (
+              <div className="pop" role="dialog" aria-label="Preview and display">
+                <label className="f">Show a different day<input type="date" value={date} onChange={(e) => setPreview(e.target.value === realToday ? '' : e.target.value)} /></label>
+                <label className="f">Garmin readings<select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+                  <option value="live">Live snapshot</option><option value="green">Demo: green day</option><option value="yellow">Demo: yellow day</option><option value="red">Demo: red day</option></select></label>
+                <div className="f">Theme<div className="seg" role="group">{[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, l]) => <button key={k} aria-pressed={theme === k} onClick={() => setTheme(k)}>{l}</button>)}</div></div>
+                <p className="small muted">Preview lets you try the adaptive rules on any day of the programme. It never changes your data.</p>
+              </div>
+            )}
           </div>
         </div>
       </header>
       <main className="main">
-        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} goLog={goLog} openDay={openDay} />}
+        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} goLog={goLog} openDay={openDay} step={step} backToToday={() => setPreview('')} isPreview={!!preview} />}
         {tab === 'calendar' && <Calendar plan={plan} today={date} log={log} onJump={openDay} />}
         {tab === 'analytics' && <Analytics plan={plan} garmin={garmin} date={date} today={date} results={cpResults} setResults={setCpResults} recal={recal} />}
         {tab === 'log' && <LogView key={draft?.id || 'x'} plan={plan} garmin={garmin} log={log} setLog={setLog} date={date} draftSession={draft} clearDraft={() => setDraft(null)} />}
