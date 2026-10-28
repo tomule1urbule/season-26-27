@@ -25,7 +25,7 @@ export default function Settings({ settings, setSettings, data, restore, garmin,
         <div className="grid g-2">
           <label className="f">Fall marathon date
             <input type="date" value={settings.fallMarathon} onChange={(e) => e.target.value && setSettings({ ...settings, fallMarathon: e.target.value })} />
-            <span className="small muted">Currently an assumption ({fmtShort(DEFAULT_FALL_MARATHON)}). Phase 5 and Checkpoint 5 (six weeks before) move with it.</span></label>
+            <span className="small muted">Warsaw Marathon, {fmtShort(DEFAULT_FALL_MARATHON)}. Phase 5 and Checkpoint 5 (six weeks before) move with it.</span></label>
           <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
             <input type="checkbox" checked={settings.lifeLoadHigh} onChange={(e) => setSettings({ ...settings, lifeLoadHigh: e.target.checked })} />
             <span>High life load right now (new baby, work crunch, travel). The microcycle advisor will suggest a 10-day block.</span></label>

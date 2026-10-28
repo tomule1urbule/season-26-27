@@ -230,7 +230,7 @@ function phase2(slot, { wk, B, P }) {
 function phase3(slot, { wk, B, P }) {
   const pc = B.pc;
   // [Mon, Wed, Fri, Sun]
-  const V = [[0, 0, 5, 10], [8, 8, 7, 14], [9, 10, 8, 17], [10, 10, 8, 18], [8, 8, 6, 14], [10, 11, 8, 19], [9, 10, 6, 0], [8, 8, 6, 14], [10, 12, 8, 20], [8, 9, 5, 0], [7, 10, 6, 16], [6, 9, 5, 12], [5, 7, 0, 0]];
+  const V = [[0, 0, 5, 10], [8, 8, 7, 14], [9, 10, 8, 17], [10, 10, 9, 18], [8, 8, 6, 14], [11, 11, 9, 19], [9, 10, 6, 0], [8, 8, 6, 14], [11, 12, 9, 20], [8, 9, 5, 0], [7, 10, 6, 16], [6, 9, 5, 12], [5, 7, 0, 0]];
   const [m, k, f, su] = clampIdx(V, wk);
   const key = {
     1: B.keyRun({ title: 'Hills: 8×60″', totalKm: 9, target: 'Hard uphill effort (RPE 8) · jog down', main: '8×60″ uphill (4–6 % grade), jog down recovery. Strong knee drive, tall posture – builds power for the half.' }),
@@ -307,8 +307,8 @@ function phase4(slot, { wk, B, P }) {
 }
 
 const P5 = { // weeks-to-marathon → [Mon, Wed, Fri, Sun]
-  15: [7, 8, 6, 13], 14: [7, 8, 6, 13], 13: [8, 10, 7, 15], 12: [10, 11, 8, 18], 11: [8, 9, 6, 14], 10: [10, 11, 8, 20], 9: [10, 12, 9, 22],
-  8: [11, 12, 9, 24], 7: [9, 10, 7, 16], 6: [11, 12, 9, 28], 5: [9, 10, 7, 18], 4: [11, 13, 9, 30], 3: [10, 12, 8, 24],
+  15: [7, 8, 6, 13], 14: [7, 8, 6, 13], 13: [8, 10, 7, 15], 12: [10, 11, 8, 18], 11: [7, 8, 6, 12], 10: [8, 10, 7, 16], 9: [10, 11, 8, 20],
+  8: [11, 12, 9, 24], 7: [9, 10, 7, 16], 6: [11, 12, 9, 28], 5: [9, 10, 7, 18], 4: [12, 13, 9, 32], 3: [11, 12, 8, 26],
   2: [9, 10, 6, 16], 1: [7, 8, 5, 10], 0: [6, 6, 0, 0],
 };
 
@@ -368,7 +368,7 @@ function blockFor(key, wk, wToGo) {
   if (key === 'p2') return wk >= 6 ? 'taper' : 'heavy';
   if (key === 'p3') return wk <= 5 ? 'heavy' : wk >= 11 ? 'taper' : 'maintain';
   if (key === 'p4') return wk >= 5 ? 'taper' : 'maintain';
-  return wk === 0 ? 'return' : wToGo <= 2 ? 'taper' : wToGo >= 10 ? 'heavy' : 'maintain';
+  return wk === 0 ? 'return' : wToGo <= 2 ? 'taper' : wToGo >= 9 ? 'heavy' : 'maintain';
 }
 
 const PHASE_FN = { p1: phase1, p2: phase2, p3: phase3, p4: phase4, p5: phase5 };
@@ -386,7 +386,7 @@ function raceSession(r, B, P) {
       warmup: '15′ easy jog, drills, 4 strides.', main: `Km 1–5 at ${pc(P.goalHM + 3)}/km (do not go out faster), km 6–15 lock in ${pc(P.goalHM)}/km, last 6 km run on feel. Gels at 8, 16 and 21′ intervals as rehearsed.`, cooldown: '10′ walk and refuel.' },
     trakai: { sport: 'brick', minutes: 75, title: 'A-RACE · Trakai Sprint Triathlon', target: 'Swim calm and wide of the pack, bike strong but controlled, run by feel. Goal: a strong, confident finish.',
       warmup: 'Rack check, 10′ jog + 5 strides, 5′ in-water warm-up if allowed.', main: 'Swim: sight every 8–10 strokes. T1: wetsuit down to the waist while running. Bike: first 5′ easy, then 85–92 % FTP effort. T2: quick. Run: first km slower than you want, then build.', cooldown: 'Walk, fluids, food.' },
-    fall: { sport: 'run', minutes: 220, title: 'A-RACE · Fall marathon', target: `Start at goal marathon pace ${pc(P.mp)}/km (from today’s Garmin prediction – updated after Checkpoint 5).`,
+    fall: { sport: 'run', minutes: 220, title: 'A-RACE · Warsaw Marathon', target: `Start at goal marathon pace ${pc(P.mp)}/km (from today’s Garmin prediction – updated after Checkpoint 5).`,
       warmup: '10′ easy jog + 3 strides.', main: `First 10 km 5–8″/km slower than goal, settle to ${pc(P.mp)}/km, race from 32 km. Gels every 30–40′ as rehearsed (Checkpoint 5).`, cooldown: 'Walk 15′, protein + carbs, shower, sleep.' },
   };
   const km = { mazeikiai: 10, kaunas: 21.1, riga: 21.1, trakai: 5, fall: 42.2 }[r.id];

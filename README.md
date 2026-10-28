@@ -44,7 +44,7 @@ If the snapshot has nothing for the selected day, the engine says so and falls b
 
 ## Notes and assumptions
 
-- Fall marathon date is **assumed 17 Oct 2027** until you set it in Settings; Phase 5 and Checkpoint 5 (six weeks out) move with it.
+- Fall marathon date is **26 Sep 2027 (Warsaw)**; you can change it in Settings; Phase 5 and Checkpoint 5 (six weeks out) move with it.
 - Checkpoint 1 uses a 400 m + 200 m swim test (critical swim speed) instead of a 3 km swim.
 - Heart-rate zones are Garmin's own. Garmin still uses a resting HR of 61; your real morning value is 44–47, so its zones sit a little low at the bottom.
 - Bike FTP (236 W) is from Aug 2025 and swim CSS (2:30/100 m) is a placeholder; both are replaced by Checkpoint 1.

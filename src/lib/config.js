@@ -55,7 +55,7 @@ export const makePaces = (pred = PREDICTIONS, ltSecKm = 1000 / LT_SPEED_MPS) => 
 export const TSS_PER_HOUR = { rest: 0, rec: 25, z2: 45, steady: 60, tempo: 72, thr: 88, vo2: 95, str: 40, race: 105 };
 
 // ── Phases, races, checkpoints ───────────────────────────────────────────────
-export const DEFAULT_FALL_MARATHON = '2027-10-17'; // ⚠ assumption – change in Settings once the race is chosen
+export const DEFAULT_FALL_MARATHON = '2027-09-26'; // Warsaw Marathon
 
 export const buildPhases = (fallMarathon) => [
   { id: 0, key: 'pre', name: 'Larnaka taper', short: 'Taper', start: '2026-10-28', end: '2026-11-15', color: '#898781',
@@ -69,7 +69,7 @@ export const buildPhases = (fallMarathon) => [
   { id: 4, key: 'p4', name: 'Triathlon transition & open water', short: 'Triathlon', start: '2027-05-17', end: '2027-06-27', color: '#6250d6',
     race: 'Trakai Sprint Triathlon', focus: 'Bricks, open-water sighting and cold-water confidence. Goal: a strong, confident finish.' },
   { id: 5, key: 'p5', name: 'Fall marathon build', short: 'Marathon', start: '2027-06-28', end: fallMarathon, color: '#e34948',
-    race: 'Fall marathon (date TBC)', focus: 'Long aerobic runs, fuelling practice, volume management. Goal: beat the Larnaka time.' },
+    race: 'Warsaw Marathon', focus: 'Long aerobic runs, fuelling practice, volume management. Goal: beat the Larnaka time.' },
 ];
 
 export const buildRaces = (fallMarathon) => [
@@ -78,7 +78,7 @@ export const buildRaces = (fallMarathon) => [
   { id: 'kaunas', date: '2027-04-25', name: 'Kaunas Half Marathon', dist: '21.1 km', priority: 'B', goal: 'Strong execution under load – no time pressure' },
   { id: 'riga', date: '2027-05-16', name: 'Riga Half Marathon', dist: '21.1 km', priority: 'A', goal: 'Sub 1:40:00 PR attempt' },
   { id: 'trakai', date: '2027-06-27', name: 'Trakai Sprint Triathlon', dist: 'Sprint', priority: 'A', goal: 'Strong, confident finish' },
-  { id: 'fall', date: fallMarathon, name: 'Fall marathon (date TBC)', dist: '42.2 km', priority: 'A', goal: 'Beat the Larnaka time – new marathon PB' },
+  { id: 'fall', date: fallMarathon, name: 'Warsaw Marathon', dist: '42.2 km', priority: 'A', goal: 'Beat the Larnaka time – new marathon PB' },
 ];
 
 // Checkpoint definitions. `fields` drive the result form; `metrics` drive the progression charts.
