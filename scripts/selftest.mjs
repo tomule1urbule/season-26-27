@@ -8,6 +8,8 @@ import { weeklyReview, applyReview } from '../src/lib/coach.js';
 import { suggestLoad, resolveSession, LIB, liftsFromLog, DB_CAP_KG } from '../src/lib/strength.js';
 import { WHY, REFS } from '../src/lib/evidence.js';
 import { intensityMix, isHardSession } from '../src/lib/plan.js';
+import { truncatePlan, WEEKS, Q1, quarterProgress, isUnlocked } from '../src/lib/quarter.js';
+import { sessionBrief } from '../src/lib/brief.js';
 import { readFileSync } from 'node:fs';
 
 let fails = 0;
@@ -170,6 +172,18 @@ for (const [id, w] of Object.entries(WHY)) for (const r of w.refs) ok(REFS[r], `
 console.log('evidence ids used:', [...used].sort().join(', '));
 const sessionsNoWhy = new Set(); for (const d of all) for (const s of plan.days[d].sessions) if (!s.why && s.group !== 'race' && s.group !== 'rest') sessionsNoWhy.add(s.title.split(' · ')[0]);
 console.log('sessions without a rationale:', [...sessionsNoWhy].join(', ') || 'none');
+
+// 13. Quarter 1 focus
+const q1 = truncatePlan(plan);
+ok(q1.end === '2027-02-16' && Object.keys(q1.days).every((d) => d <= Q1.end), 'Quarter 1 view stops at the 10K');
+ok(q1.races.map((r) => r.id).join() === 'larnaka,mazeikiai' || q1.races.map((r) => r.id).join() === 'mazeikiai', 'only the 10K race remains: ' + q1.races.map((r) => r.id));
+ok(q1.checkpoints.length === 2, 'two checkpoints in Quarter 1');
+ok(WEEKS.length === 14, 'fourteen weekly briefs');
+ok(!isUnlocked({}, '2027-02-16') && isUnlocked({}, '2027-02-17') && isUnlocked({ unlockAll: true }, '2026-10-28'), 'later quarters unlock on 17 Feb or by switch');
+const qp = quarterProgress(q1, g, [], '2026-10-28');
+ok(!qp.started && qp.daysToStart === 19, 'day one is 19 days away on 28 Oct');
+let missing = 0; for (const d of range(Q1.start, Q1.end)) for (const s of q1.days[d].sessions) if (s.group !== 'rest' && !sessionBrief(s)) { missing++; console.error('no brief:', s.title); }
+ok(missing === 0, 'every Quarter 1 session has a coach brief');
 
 console.log(fails ? `\n${fails} FAILED` : '\nall checks passed');
 process.exit(fails ? 1 : 0);

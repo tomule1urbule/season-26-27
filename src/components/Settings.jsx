@@ -29,6 +29,9 @@ export default function Settings({ settings, setSettings, data, restore, garmin,
           <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
             <input type="checkbox" checked={settings.lifeLoadHigh} onChange={(e) => setSettings({ ...settings, lifeLoadHigh: e.target.checked })} />
             <span>High life load right now (new baby, work crunch, travel). The microcycle advisor will suggest a 10-day block.</span></label>
+          <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
+            <input type="checkbox" checked={!!settings.unlockAll} onChange={(e) => setSettings({ ...settings, unlockAll: e.target.checked })} />
+            <span>Show later quarters now (half-marathon, triathlon, marathon). They unlock automatically on 17 Feb. Quarter 1 is the focus until then.</span></label>
         </div>
       </section>
       <section className="card">

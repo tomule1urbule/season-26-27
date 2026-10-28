@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { fmtDow, fmtShort } from '../lib/dates.js';
 import { StrengthPanel, WhyPanel, useLifts } from './Strength.jsx';
 import { resolveSession, exLine } from '../lib/strength.js';
+import { sessionBrief } from '../lib/brief.js';
 
 export const GROUPS = { run: 'Run', bike: 'Bike', swim: 'Swim', strength: 'Strength', brick: 'Brick', rest: 'Rest', checkpoint: 'Checkpoint test', race: 'Race' };
 export const gc = (g) => `var(--s-${g || 'rest'})`;
@@ -102,7 +103,21 @@ const sumMin = (t) => [...(t || '').matchAll(/(\d+)\s*[′']/g)].reduce((a, m) =
 const dur = (m) => (m >= 90 ? `${Math.floor(m / 60)}h${String(Math.round(m % 60)).padStart(2, '0')}` : null);
 
 /** The big navy session board used on the Today tab (and in day popups). */
-export function SessionBoard({ s, result, onLog, minor, children }) {
+function Brief({ s, open }) {
+  const b = sessionBrief(s);
+  if (!b) return null;
+  const col = (t, items) => items?.length ? <div><h4>{t}</h4><ul>{items.map((x, i) => <li key={i}>{x}</li>)}</ul></div> : null;
+  return (
+    <details className="brief" open={open}>
+      <summary><span>Coach brief</span><em>how it should feel, before, during, after</em></summary>
+      <p className="feel"><b>How it should feel.</b> {b.feel}</p>
+      <div className="bcols">{col('Before', b.before)}{col('During', b.during)}{col('After', b.after)}</div>
+      {b.wrong?.length > 0 && <div className="bwrong"><h4>If it goes wrong</h4><ul>{b.wrong.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
+    </details>
+  );
+}
+
+export function SessionBoard({ s, result, onLog, minor, done, children }) {
   const eff = result?.session || s;
   const changed = result && ['modified', 'recovery', 'deferred'].includes(result.status);
   const warm = sumMin(eff.warmup), cool = sumMin(eff.cooldown), main = (eff.minutes || 0) - warm - cool;
@@ -115,6 +130,7 @@ export function SessionBoard({ s, result, onLog, minor, children }) {
         <span className="tag"><i />{GROUPS[eff.group] || 'Session'}</span>
         {(KIND[eff.kind] || eff.kind) !== GROUPS[eff.group] && <span className="tag">{KIND[eff.kind] || eff.kind}</span>}
         {changed && <span className="tag warn">{result.status === 'recovery' ? 'Replaced' : result.status === 'deferred' ? 'Deferred' : 'Adjusted for today'}</span>}
+        {done && <span className="tag good">Done</span>}
         {eff.trimmed && <span className="tag warn">−{eff.trimmed}% load trim</span>}
       </div>
       <h3>{eff.title}</h3>
@@ -139,6 +155,7 @@ export function SessionBoard({ s, result, onLog, minor, children }) {
         {step('Cool-down', eff.cooldown, struct ? `${cool}′` : null)}
         {step('Notes', eff.notes)}
       </dl>
+      {!rest && <Brief s={eff} open={!minor} />}
       {eff.why && <WhyPanel id={eff.why} />}
       {result?.options && (
         <div className="opts"><div className="small" style={{ color: 'var(--board-mute)' }}>Pick one:</div>
@@ -176,8 +193,8 @@ export function Ring({ value, size = 112, children }) {
 const I = (d) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 export const TAB_ICONS = {
   today: I(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>),
-  calendar: I(<><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>),
-  analytics: I(<><path d="M4 19V5M4 19h16" /><path d="M8 15l4-5 3 3 4-6" /></>),
+  quarter: I(<><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>),
+  progress: I(<><path d="M4 19V5M4 19h16" /><path d="M8 15l4-5 3 3 4-6" /></>),
   log: I(<><path d="M6 3.5h9l3 3V20.5H6z" /><path d="M9 11h6M9 15h6" /></>),
   settings: I(<><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" /></>),
 };

@@ -73,11 +73,11 @@ export function StrengthPanel({ s }) {
                   <div className="dots" role="group" aria-label={`${lib.name} sets done`}>
                     {Array.from({ length: e.sets }).map((_, i) => <button key={i} className={i < d ? 'on' : ''} aria-pressed={i < d} aria-label={`Set ${i + 1}`} onClick={() => tick(e.id, i)}>{i + 1}</button>)}
                   </div>
-                  <details className="cue"><summary>How to do it</summary><p>{lib.cue}</p></details>
-                  <p className="lift-src">
-                    {e.last ? `Last logged: ${e.last.kg ? `${e.last.kg} kg × ` : ''}${e.last.reps}${lib.timed ? ' s' : ' reps'} on ${fmtShort(e.last.date)}.` : lib.timed ? '' : `Starting point from your Garmin on 22 Oct: ${lib.base.kg} kg × ${lib.base.reps}. If it feels easy, add 2 kg until you have about ${e.rir} reps left. Log the session and the next load follows from it.`}
-                    {e.atCap && <b> {e.note}</b>}
-                  </p>
+                  <details className="cue"><summary>How to do it</summary><p>{lib.cue}</p>
+                    <p className="lift-src">
+                      {e.last ? `Last logged: ${e.last.kg ? `${e.last.kg} kg × ` : ''}${e.last.reps}${lib.timed ? ' s' : ' reps'} on ${fmtShort(e.last.date)}.` : lib.timed ? '' : `Starting point from your Garmin on 22 Oct: ${lib.base.kg} kg × ${lib.base.reps}. If it feels easy, add 2 kg until you have about ${e.rir} reps left. Log the session and the next load follows from it.`}
+                    </p></details>
+                  {e.atCap && <p className="lift-src"><b>{e.note}</b></p>}
                 </div>
               </article>
             );

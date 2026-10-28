@@ -49,7 +49,7 @@ function Compliance({ plan, garmin, date }) {
   );
 }
 
-function LoadHrv({ garmin }) {
+export function LoadHrv({ garmin }) {
   const g = garmin?.data;
   if (!g) return <section className="card"><h2>HRV vs workload</h2><div className="empty" style={{ marginTop: 10 }}>No Garmin snapshot loaded.</div></section>;
   const d0 = g.hrv[0].d, d1 = g.hrv[g.hrv.length - 1].d;

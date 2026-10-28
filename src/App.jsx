@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Dashboard from './components/Dashboard.jsx';
-import Calendar from './components/Calendar.jsx';
-import Analytics from './components/Analytics.jsx';
+import Quarter from './components/Quarter.jsx';
+import Progress from './components/Progress.jsx';
 import LogView from './components/LogView.jsx';
 import Settings from './components/Settings.jsx';
 import { generatePlan } from './lib/plan.js';
@@ -9,6 +9,7 @@ import { classify } from './lib/adapt.js';
 import { recalibrate } from './lib/zones.js';
 import { weeklyReview } from './lib/coach.js';
 import { liftsFromLog } from './lib/strength.js';
+import { truncatePlan, isUnlocked } from './lib/quarter.js';
 import { LiftsContext } from './components/Strength.jsx';
 import { loadGarmin, metricsForDate, levelHistory } from './lib/garmin.js';
 import { DEFAULT_FALL_MARATHON, LOCAL_KEYS } from './lib/config.js';
@@ -21,7 +22,7 @@ const SCENARIOS = {
   yellow: { readiness: 62, hrvStatus: 'LOW', hrvLast: 70, hrvWeekly: 86, sleepScore: 72, sleepHours: 6.6, acwr: 1.2, acute: 700, chronic: 583, optimalMax: 931 },
   red: { readiness: 38, hrvStatus: 'UNBALANCED', hrvLast: 55, hrvWeekly: 84, sleepScore: 55, sleepHours: 5.4, acwr: 1.52, acute: 950, chronic: 625, optimalMax: 931 },
 };
-const TABS = [['today', 'Today'], ['calendar', 'Calendar'], ['analytics', 'Analytics'], ['log', 'Log'], ['settings', 'Settings']];
+const TABS = [['today', 'Today'], ['quarter', 'Quarter'], ['progress', 'Progress'], ['log', 'Log'], ['settings', 'Settings']];
 
 export default function App() {
   const [tab, setTab] = useState('today');
@@ -42,7 +43,9 @@ export default function App() {
   useEffect(() => { if (theme === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme); }, [theme]);
 
   const recal = useMemo(() => recalibrate(cpResults), [cpResults]);
-  const plan = useMemo(() => generatePlan({ fallMarathon: settings.fallMarathon, tenDay: settings.tenDay, paces: recal.paces, cfg: recal.cfg }), [settings.fallMarathon, settings.tenDay, recal]);
+  const fullPlan = useMemo(() => generatePlan({ fallMarathon: settings.fallMarathon, tenDay: settings.tenDay, paces: recal.paces, cfg: recal.cfg }), [settings.fallMarathon, settings.tenDay, recal]);
+  const unlocked = isUnlocked(settings, realToday);
+  const plan = useMemo(() => (unlocked ? fullPlan : truncatePlan(fullPlan)), [fullPlan, unlocked]);
   const metrics = useMemo(() => (scenario === 'live' ? metricsForDate(garmin.data, date, manual[date]) : SCENARIOS[scenario]), [garmin.data, date, manual, scenario]);
   const decision = useMemo(() => classify(metrics), [metrics]);
   useEffect(() => { document.documentElement.style.setProperty('--state', { green: 'var(--good)', yellow: 'var(--warn)', red: 'var(--crit)' }[decision.level] || 'var(--line-2)'); }, [decision.level]);
@@ -83,11 +86,11 @@ export default function App() {
         </div>
       </header>
       <main className="main">
-        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} review={review} goLog={goLog} openDay={openDay} step={step} backToToday={() => setPreview('')} isPreview={!!preview} />}
-        {tab === 'calendar' && <Calendar plan={plan} today={date} log={log} onJump={openDay} />}
-        {tab === 'analytics' && <Analytics plan={plan} garmin={garmin} date={date} today={date} results={cpResults} setResults={setCpResults} recal={recal} />}
+        {tab === 'today' && <Dashboard plan={plan} date={date} decision={decision} metrics={metrics} garmin={garmin.data} scenario={scenario} manual={manual} setManual={setManual} settings={settings} setSettings={setSettings} history={history} review={review} log={log} setTab={setTab} goLog={goLog} openDay={openDay} step={step} backToToday={() => setPreview('')} isPreview={!!preview} />}
+        {tab === 'quarter' && <Quarter plan={plan} fullPlan={fullPlan} unlocked={unlocked} garmin={garmin} log={log} today={date} openDay={openDay} />}
+        {tab === 'progress' && <Progress plan={plan} garmin={garmin} log={log} today={date} cpResults={cpResults} setCpResults={setCpResults} recal={recal} lifts={lifts} />}
         {tab === 'log' && <LogView key={draft?.id || 'x'} lifts={lifts} plan={plan} garmin={garmin} log={log} setLog={setLog} date={date} draftSession={draft} clearDraft={() => setDraft(null)} />}
-        {tab === 'settings' && <Settings settings={settings} setSettings={setSettings} data={backup} restore={restore} garmin={garmin} plan={plan} review={review} />}
+        {tab === 'settings' && <Settings settings={settings} setSettings={setSettings} data={backup} restore={restore} garmin={garmin} plan={fullPlan} review={review} />}
       </main>
     </LiftsContext.Provider>
   );

@@ -5,6 +5,7 @@ import { adaptSession, applyTrim, microcycleAdvice, RULES } from '../lib/adapt.j
 import { applyReview } from '../lib/coach.js';
 import { addDays, diffDays, fmtLong, fmtShort, fmtDow, mondayOf } from '../lib/dates.js';
 import { nextEvent, phaseOn, sessionsOn } from '../lib/plan.js';
+import { Q1, WEEKS, quarterProgress, isDone, weekCompletion } from '../lib/quarter.js';
 
 const upTo = (arr, date, n) => (arr || []).filter((x) => x.d <= date).slice(-n);
 
@@ -103,25 +104,44 @@ function Advisor({ advice, settings, setSettings, date, plan }) {
   );
 }
 
-export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, review, goLog, openDay, step, backToToday, isPreview }) {
+function Hero({ prog, plan, g, log, date, setTab }) {
+  const wk = prog.weeks[prog.cur];
+  const c = prog.started ? weekCompletion(plan, g, log, prog.cur) : null;
+  return (
+    <section className="qstrip">
+      <Ring value={prog.pct * 100} size={96}><b>{prog.started ? prog.dayN : 0}</b><span>of {prog.total}</span></Ring>
+      <div className="qs-t">
+        <span className="qs-k">{Q1.name}</span>
+        <h2>{prog.started ? `Week ${prog.cur + 1}: ${wk.title}` : `Day one is in ${prog.daysToStart} days`}</h2>
+        <p>{prog.started ? wk.mission : 'Monday 16 Nov starts the programme, the day after Larnaka. Until then your Garmin schedule covers the taper and the race. Take a look at what Quarter 1 holds.'}</p>
+        <div className="row"><button className="btn sm" onClick={() => setTab('quarter')}>Open Quarter 1</button>{prog.streak > 0 && <span className="pill good">{prog.streak}-week streak</span>}</div>
+      </div>
+      {c && c.total > 0 && (
+        <div className="qs-w"><Ring value={(c.done / c.total) * 100} size={78}><b>{c.done}/{c.total}</b></Ring><span>this week</span></div>
+      )}
+    </section>
+  );
+}
+
+export default function Dashboard({ plan, date, decision, metrics, garmin, scenario, manual, setManual, settings, setSettings, history, review, log, setTab, goLog, openDay, step, backToToday, isPreview }) {
   const sessions = useMemo(() => sessionsOn(plan, date).map((x) => applyReview(x, review)), [plan, date, review]);
   const ph = phaseOn(plan, date);
   const results = useMemo(() => sessions.map((s) => adaptSession(s, decision, metrics)), [sessions, decision, metrics]);
   const head = results.find((r) => r.session.group !== 'rest') || results[0];
   const advice = useMemo(() => microcycleAdvice(history.filter((h) => h.d <= date && diffDays(date, h.d) < 7), settings.lifeLoadHigh), [history, settings.lifeLoadHigh, date]);
-  const week = [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(date, k));
+  const week = [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(date, k)).filter((d) => d <= plan.end);
   const larnaka = plan.races.find((r) => r.id === 'larnaka');
   const ev = nextEvent(plan, date);
   const days = (e) => diffDays(e.date, date);
-  const wk = plan.days[date]?.wk;
+  const g = garmin;
+  const prog = useMemo(() => quarterProgress(plan, g, log, date), [plan, g, log, date]);
+  const past = date > plan.end;
   return (
     <div className="stack">
       <div className="daybar">
         <div>
-          <div className="when">
-            <h1>{fmtLong(date)}</h1>
-          </div>
-          <p className="sub">{ph ? ph.name : ''}{wk != null ? ` · week ${wk + 1} of the phase` : ''}{plan.days[date]?.microcycle === 10 ? ' · 10-day block' : ''}</p>
+          <div className="when"><h1>{fmtLong(date)}</h1></div>
+          <p className="sub">{ph ? ph.name : ''}{plan.days[date]?.microcycle === 10 ? ' · 10-day block' : ''}</p>
           <div className="row" style={{ marginTop: 10 }}>
             <div className="stepper"><button className="btn sm icon" onClick={() => step(-1)} aria-label="Previous day">‹</button><button className="btn sm icon" onClick={() => step(1)} aria-label="Next day">›</button></div>
             {isPreview && <button className="btn sm" onClick={backToToday}>Back to today</button>}
@@ -134,45 +154,53 @@ export default function Dashboard({ plan, date, decision, metrics, garmin, scena
         </div>
       </div>
 
+      <Hero prog={prog} plan={plan} g={g} log={log} date={date} setTab={setTab} />
+
       <div className="grid g-today">
         <div className="board-col">
           {sessions.length === 0 && (
             <div className="board empty-day">
-              <h3>{date < plan.start ? 'Taper and race week' : 'Nothing planned'}</h3>
-              <p className="rest-note">{date < plan.start
-                ? <>Your Season 26/27 programme starts <b>Monday {fmtShort(plan.start)}</b>, the day after Larnaka ({diffDays(larnaka.date, date)} days to go). Until then your Garmin schedule covers the taper and race. Use the arrows to step into the programme.</>
+              <h3>{past ? 'Beyond Quarter 1' : date < plan.start ? 'Taper and race week' : 'Nothing planned'}</h3>
+              <p className="rest-note">{past ? 'Quarter 1 ends with the Mažeikiai 10K on 16 Feb. The next quarter unlocks on 17 Feb, or earlier if you switch it on in Settings.'
+                : date < plan.start ? <>Your Season 26/27 programme starts <b>Monday {fmtShort(plan.start)}</b>, the day after Larnaka ({diffDays(larnaka.date, date)} days to go). Until then your Garmin schedule covers the taper and race. Use the arrows to step into the programme.</>
                 : 'No sessions are planned for this date.'}</p>
             </div>
           )}
-          {results.map((r, i) => <SessionBoard key={sessions[i].id} s={sessions[i]} result={r} onLog={goLog} minor={i > 0} />)}
+          {results.map((r, i) => <SessionBoard key={sessions[i].id} s={sessions[i]} result={r} onLog={goLog} minor={i > 0} done={isDone(g, log, sessions[i])} />)}
         </div>
         <Readiness decision={decision} headline={head?.headline} metrics={metrics} garmin={garmin} scenario={scenario} date={date} trim={decision.trim} />
       </div>
 
-      <CoachCard review={review} />
+      {week.length > 0 && (
+        <section className="card">
+          <div className="card-h"><h2>The week ahead</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
+          <div className="wk">
+            {week.map((d, i) => {
+              const ss = sessionsOn(plan, d).map((s) => applyTrim(applyReview(s, review), i === 0 ? 0 : decision.trim));
+              return (
+                <button key={d} className={`wk-day ${i === 0 ? 'today' : ''}`} onClick={() => openDay(d)} aria-label={`${fmtLong(d)}: ${ss.map(chipLabel).join(', ') || 'nothing planned'}`}>
+                  <span className="d"><span>{i === 0 ? (isPreview ? fmtDow(d) : 'Today') : fmtDow(d)}</span><b>{d.slice(8).replace(/^0/, '')}</b></span>
+                  {ss.map((s) => <span key={s.id} className={`blk ${s.group === 'rest' ? 'rest' : ''} ${s.group === 'checkpoint' ? 'ck' : ''} ${isDone(g, log, s) ? 'done' : ''}`} style={{ '--sc': gc(s.group) }}>{chipLabel(s)}{s.minutes > 0 && s.group !== 'rest' ? <small>{s.minutes >= 90 ? `${Math.floor(s.minutes / 60)}h${String(s.minutes % 60).padStart(2, '0')}` : `${s.minutes} min`}{s.trimmed ? ` · −${s.trimmed}%` : ''}</small> : null}</span>)}
+                  {ss.length === 0 && <span className="none">{d < plan.start ? 'Garmin plan' : 'Nothing planned'}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
-      <section className="card">
-        <div className="card-h"><h2>The week ahead</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
-        <div className="wk">
-          {week.map((d, i) => {
-            const ss = sessionsOn(plan, d).map((s) => applyTrim(applyReview(s, review), i === 0 ? 0 : decision.trim));
-            return (
-              <button key={d} className={`wk-day ${i === 0 ? 'today' : ''}`} onClick={() => openDay(d)} aria-label={`${fmtLong(d)}: ${ss.map(chipLabel).join(', ') || 'nothing planned'}`}>
-                <span className="d"><span>{i === 0 ? (isPreview ? fmtDow(d) : 'Today') : fmtDow(d)}</span><b>{d.slice(8).replace(/^0/, '')}</b></span>
-                {ss.map((s) => <span key={s.id} className={`blk ${s.group === 'rest' ? 'rest' : ''} ${s.group === 'checkpoint' ? 'ck' : ''}`} style={{ '--sc': gc(s.group) }}>{chipLabel(s)}{s.minutes > 0 && s.group !== 'rest' ? <small>{s.minutes >= 90 ? `${Math.floor(s.minutes / 60)}h${String(s.minutes % 60).padStart(2, '0')}` : `${s.minutes} min`}{s.trimmed ? ` · −${s.trimmed}%` : ''}</small> : null}</span>)}
-                {ss.length === 0 && <span className="none">{d < plan.start ? 'Garmin plan' : 'Nothing planned'}</span>}
-              </button>
-            );
-          })}
+      {prog.started && <CoachCard review={review} />}
+
+      <details className="card fold">
+        <summary><h2>More tools</h2><span className="sec-note">Season timeline, microcycle, quick entry</span></summary>
+        <div className="stack" style={{ marginTop: 14 }}>
+          <Ribbon plan={plan} date={date} />
+          <div className="grid g-2">
+            <Advisor advice={advice} settings={settings} setSettings={setSettings} date={date} plan={plan} />
+            <QuickEntry date={date} manual={manual} setManual={setManual} />
+          </div>
         </div>
-      </section>
-
-      <section className="card"><div className="card-h"><h2>The season</h2><span className="sec-note">Bands are phases, flags are races, diamonds are fitness tests</span></div><Ribbon plan={plan} date={date} /></section>
-
-      <div className="grid g-2">
-        <Advisor advice={advice} settings={settings} setSettings={setSettings} date={date} plan={plan} />
-        <QuickEntry date={date} manual={manual} setManual={setManual} />
-      </div>
+      </details>
     </div>
   );
 }
