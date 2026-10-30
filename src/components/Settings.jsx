@@ -1,13 +1,11 @@
 import { useRef, useState } from 'react';
-import { addDays, fmtShort } from '../lib/dates.js';
+import { fmtShort } from '../lib/dates.js';
 import { DEFAULT_FALL_MARATHON, LOCAL_KEYS } from '../lib/config.js';
 import { RULES } from '../lib/adapt.js';
 import Method from './Method.jsx';
 
 export default function Settings({ settings, setSettings, data, restore, garmin, plan }) {
   const fileRef = useRef(null);
-  const [from, setFrom] = useState(plan.start);
-  const [blocks, setBlocks] = useState(1);
   const [msg, setMsg] = useState('');
   const exportAll = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -28,26 +26,18 @@ export default function Settings({ settings, setSettings, data, restore, garmin,
             <span className="small muted">Warsaw Marathon, {fmtShort(DEFAULT_FALL_MARATHON)}. Phase 5 and Checkpoint 5 (six weeks before) move with it.</span></label>
           <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
             <input type="checkbox" checked={settings.lifeLoadHigh} onChange={(e) => setSettings({ ...settings, lifeLoadHigh: e.target.checked })} />
-            <span>High life load right now (new baby, work crunch, travel). The microcycle advisor will suggest a 10-day block.</span></label>
+            <span>High life load right now (new baby, work crunch, travel). The coach review will lean towards holding or easing the load.</span></label>
           <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
             <input type="checkbox" checked={!!settings.unlockAll} onChange={(e) => setSettings({ ...settings, unlockAll: e.target.checked })} />
             <span>Show later quarters now (half-marathon, triathlon, marathon). They unlock automatically on 17 Feb. Quarter 1 is the focus until then.</span></label>
         </div>
       </section>
       <section className="card">
-        <h2 style={{ marginBottom: 6 }}>10-day blocks</h2>
-        <p className="small ink2" style={{ marginBottom: 10 }}>A 10-day block keeps the same sessions but adds three easy recovery days (mobility, easy spin, walk), cutting load density by about 30%. Races and checkpoints stay on their dates.</p>
-        <div className="row">
-          <label className="f">Start<input type="date" value={from} min={plan.start} onChange={(e) => setFrom(e.target.value)} /></label>
-          <label className="f">Blocks<select value={blocks} onChange={(e) => setBlocks(Number(e.target.value))}>{[1, 2, 3].map((n) => <option key={n} value={n}>{n} × 10 days</option>)}</select></label>
-          <button className="btn primary" style={{ alignSelf: 'end' }} onClick={() => setSettings({ ...settings, tenDay: [...settings.tenDay, { from, blocks }] })}>Add block</button>
-        </div>
-        <div className="stack" style={{ marginTop: 10 }}>
-          {settings.tenDay.length === 0 && <span className="small muted">No 10-day blocks planned.</span>}
-          {settings.tenDay.map((t, i) => (
-            <div key={i} className="spread"><span>{fmtShort(t.from)} → {fmtShort(addDays(t.from, t.blocks * 10 - 1))} ({t.blocks * 10} days)</span><button className="btn sm" onClick={() => setSettings({ ...settings, tenDay: settings.tenDay.filter((_, j) => j !== i) })}>Remove</button></div>
-          ))}
-        </div>
+        <h2 style={{ marginBottom: 6 }}>Rhythm</h2>
+        <p className="small ink2" style={{ marginBottom: 10 }}>The plan runs in 10-day cycles, one session a day: run, swim, key run, rest, strength, run, swim, run, long run, recovery walk. Races and checkpoints stay on their dates and the cycle bends around them.</p>
+        <label className="f" style={{ gridTemplateColumns: 'auto 1fr', alignItems: 'start', gap: 10 }}>
+          <input type="checkbox" checked={!!settings.sevenDay} onChange={(e) => setSettings({ ...settings, sevenDay: e.target.checked })} />
+          <span>Use 7-day weeks instead. A fallback only: the Quarter and Progress screens are built around 10-day cycles.</span></label>
       </section>
       <section className="card">
         <h2 style={{ marginBottom: 8 }}>Adaptive rules in force</h2>

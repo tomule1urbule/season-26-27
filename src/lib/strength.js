@@ -44,6 +44,8 @@ export const GROUP_LABEL = { lower: 'Lower body', upper: 'Upper body', trunk: 'T
 export const SESSIONS = {
   S: { name: 'Full-body strength', short: 'Strength', day: 'Thursday, on its own day: three days before the Sunday long run and never next to a key session',
        ex: (variant) => ['bss', 'slrdl', 'hipThrust', 'calfSL', ...(variant ? ['bench', 'pullover'] : ['incline', 'row']), 'sidePlank'] },
+  U: { name: 'Upper body and trunk', short: 'Strength', day: 'Spare day of the 10-day cycle: no leg work, so it never touches the run days around it',
+       ex: (variant) => [...(variant ? ['bench', 'pullover'] : ['incline', 'row']), 'lateral', 'triceps', 'curl', 'sidePlank'] },
   A: { name: 'Strength A · Single-leg strength and upper body', short: 'Strength A', day: 'Wednesday evening, at least 6 hours after the key run',
        ex: ['bss', 'slrdl', 'incline', 'row', 'curl', 'sidePlank', 'calfSL'] },
   B: { name: 'Strength B · Hips, squat and shoulders', short: 'Strength B', day: 'Thursday, any time (no running that day)',

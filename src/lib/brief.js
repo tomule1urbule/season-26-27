@@ -29,7 +29,7 @@ const B = {
     feel: 'RPE 3–4. The last third feels like work, but you could add a few more kilometres.',
     before: ['The evening before: normal dinner with extra carbohydrate, a glass of water, early night.', 'Breakfast 2–3 hours before: 60–80 g carbohydrate (toast, oats, banana).', 'Plan the route as a loop you can cut short.'],
     during: ['First 3 km very easy. Resist the first fast kilometres.', 'Heart rate under 150. If it drifts up after 90 minutes, slow down, do not try to hold pace.', `From about 16 km: take a ${GEL} every 40 minutes with water. Practising this now is what makes race-day fuelling work (Costa 2017).`, 'Drink to thirst; carry a bottle for runs beyond 90 minutes.'],
-    after: ['5 minutes walk. Eat within 30 minutes: carbohydrate and protein.', 'Easy day tomorrow (Monday): legs are heavy, which is normal.', 'Log distance, fuelling and how the last 3 km felt.'],
+    after: ['5 minutes walk. Eat within 30 minutes: carbohydrate and protein.', 'The day after is an easy recovery walk: legs are heavy, which is normal.', 'Log distance, fuelling and how the last 3 km felt.'],
     wrong: ['Stomach trouble after a gel: halve the dose next time and take it with more water.', 'Hip or knee pain: stop at the next safe spot. Do not finish the planned distance at any cost.'],
   },
   long_pace: {
@@ -57,7 +57,7 @@ const B = {
     feel: 'RPE 6–7. Comfortably hard: you could say a few words but not hold a conversation.',
     before: ['Normal meal 2–3 hours before.', '15 minutes easy, drills and strides.'],
     during: ['Pace first, heart rate second. Heart rate drifts up during each rep and settles near 165–172 (your lactate-threshold heart rate is 172).', 'Equal splits across reps.', 'Jog the recoveries slowly.'],
-    after: ['10 minutes easy, walk, eat.', 'Thursday is the strength day, so tomorrow has no other training.'],
+    after: ['10 minutes easy, walk, eat.', 'The next day is a rest or recovery day, so there is room to absorb the work.'],
     wrong: ['Heart rate above 175 at the target pace: slow by 5 seconds per kilometre. The target is a range, not a dare.'],
   },
   swim_tech: {
@@ -72,7 +72,7 @@ const B = {
     before: ['Light snack. Stretch shoulders for 2 minutes.'],
     during: ['The continuous swim is the main set: no wall rests. Breathe every 3 strokes if you can, every 2 if you must.', 'Aim for even 100 m splits. Slower is fine, uneven is not.'],
     after: ['Easy 100 m, dry off, eat.', 'Log the distance and your average 100 m time.'],
-    wrong: ['Cannot swim the full distance non-stop: split it into two blocks with 20 seconds rest and log that. Next week try again.'],
+    wrong: ['Cannot swim the full distance non-stop: split it into two blocks with 20 seconds rest and log that. Try again in the next cycle.'],
   },
   bike: {
     feel: 'RPE 3–4. Easy aerobic riding. Breathing is steady, legs spin lightly.',
@@ -97,14 +97,14 @@ const B = {
   },
   strength_anat: {
     feel: 'RPE 6–7. Moderate loads, 2–3 reps in reserve, slow lowering.',
-    before: ['Light snack. Thursday has no other training, so train whenever suits you.', 'Warm up as printed: ramp-up sets at 50% and 75% of working weight.'],
+    before: ['Light snack. Strength has a day to itself, so train whenever suits you.', 'Warm up as printed: ramp-up sets at 50% and 75% of working weight.'],
     during: ['Lower for 3 seconds on the leg lifts. Stop each set with 2–3 reps left.', 'Rest 90 seconds between sets; use the time to breathe, not the phone.', 'Tick the dots after each set.'],
     after: ['Stretch hip flexors and calves.', 'Write down weight and reps for the last set of each lift; the next session sets the load from them.'],
     wrong: ['Knees or lower back complain: reduce range of motion, not the weight; if it stays, skip the exercise.'],
   },
   strength_heavy: {
     feel: 'RPE 8 on the last set of each lift, with 2 reps left in the tank. Slow lowering, controlled lift.',
-    before: ['Thursday is its own day: no run, swim or ride around it. Any time that suits you.', 'Eat 90 minutes before.', 'Ramp-up sets at 50% and 75% of the working weight.'],
+    before: ['Strength is its own day: no run, swim or ride on the same day. Any time that suits you.', 'Eat 90 minutes before.', 'Ramp-up sets at 50% and 75% of the working weight.'],
     during: ['3 seconds down, 1 second pause, lift. This is what makes the load heavy with 25 kg dumbbells.', 'Rest 2 minutes after leg lifts. Short rests defeat the purpose.', 'When a set hits the top of the rep range with 2 reps left, add weight next time; the app suggests it from your log.'],
     after: ['Walk it off for 5 minutes, stretch calves and hips.', 'Eat protein within 90 minutes.', 'Log the weights and reps so the next session is set correctly.'],
     wrong: ['Cannot reach the minimum reps: lower the load 5–10% and log it. Missing reps is information, not failure.', 'Soreness above 5 of 10 the next morning: reduce one set on each lift next time.'],
@@ -119,7 +119,7 @@ const B = {
 };
 
 const CP = {
-  1: { feel: 'A maximum-effort swim test on Monday and an all-out bike test on Tuesday, one session each day. Hard, short, controlled.',
+  1: { feel: 'A maximum-effort swim test on 28 Dec and an all-out bike test on 29 Dec, one session each day. Hard, short, controlled.',
     before: ['Rest the day before: no hard session.', 'Eat well and sleep; this is a test of fitness, not tiredness.', 'The swim is on 28 Dec and the bike test on 29 Dec, one a day.'],
     during: ['Swim: 400 m time trial, 10 minutes easy, then 200 m time trial. Even pacing; do not sprint the first 100.', 'Bike: 20 minutes as hard as you can sustain evenly. Start at 90% of your effort and build.', 'Record strokes per 25 m in the last 100 of each swim.'],
     after: ['Enter times and power in the Progress tab: the app recalculates your swim pace and FTP.', 'Easy day next. You will feel flat; that is normal.'],

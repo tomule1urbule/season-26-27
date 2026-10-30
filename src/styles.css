@@ -200,7 +200,7 @@ label.f { display: grid; gap: 5px; font-size: 13px; color: var(--ink-2); font-we
 .src { font-size: 12px; color: var(--muted); }
 
 /* ── Today: week strip ─────────────────────────────── */
-.wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.wk { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .wk-day { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--surface-2); text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-height: 132px; transition: transform .15s, border-color .15s; }
 .wk-day:hover { border-color: var(--ink-2); transform: translateY(-2px); }
 .wk-day.today { background: var(--surface); border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
@@ -434,7 +434,7 @@ table.t td.n { font-variant-numeric: tabular-nums; text-align: right; }
 .wcard .ring .mid b.rb { font-size: 13px; }
 .wcard[aria-expanded] .chev { transition: transform .2s; }
 .mission { padding: 0 16px 8px 80px; color: var(--ink-2); max-width: 78ch; line-height: 1.45; }
-.mini { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 4px 14px 0; }
+.mini { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 4px 14px 0; }
 .md { display: grid; gap: 3px; align-content: start; text-align: left; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px; cursor: pointer; font: inherit; color: inherit; min-height: 64px; }
 .md:hover { border-color: var(--ink-2); } .md small { font-size: 11px; color: var(--ink-2); font-weight: 650; }
 .mc { font-size: 11.5px; font-weight: 650; line-height: 1.2; padding: 3px 5px; border-radius: 6px; background: color-mix(in srgb, var(--sc) 16%, transparent); border-left: 3px solid var(--sc); overflow-wrap: anywhere; }

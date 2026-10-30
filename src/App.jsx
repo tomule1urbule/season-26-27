@@ -26,7 +26,7 @@ const TABS = [['today', 'Today'], ['quarter', 'Quarter'], ['progress', 'Progress
 
 export default function App() {
   const [tab, setTab] = useState('today');
-  const [settings, setSettings] = useStored(LOCAL_KEYS.settings, { fallMarathon: DEFAULT_FALL_MARATHON, lifeLoadHigh: false, tenDay: [] });
+  const [settings, setSettings] = useStored(LOCAL_KEYS.settings, { fallMarathon: DEFAULT_FALL_MARATHON, lifeLoadHigh: false });
   const [cpResults, setCpResults] = useStored(LOCAL_KEYS.cp, {});
   const [log, setLog] = useStored(LOCAL_KEYS.log, []);
   const [manual, setManual] = useStored(LOCAL_KEYS.manual, {});
@@ -43,7 +43,7 @@ export default function App() {
   useEffect(() => { if (theme === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme); }, [theme]);
 
   const recal = useMemo(() => recalibrate(cpResults), [cpResults]);
-  const fullPlan = useMemo(() => generatePlan({ fallMarathon: settings.fallMarathon, tenDay: settings.tenDay, paces: recal.paces, cfg: recal.cfg }), [settings.fallMarathon, settings.tenDay, recal]);
+  const fullPlan = useMemo(() => generatePlan({ fallMarathon: settings.fallMarathon, microcycle: settings.sevenDay ? 7 : 10, paces: recal.paces, cfg: recal.cfg }), [settings.fallMarathon, settings.sevenDay, recal]);
   const unlocked = isUnlocked(settings, realToday);
   const plan = useMemo(() => (unlocked ? fullPlan : truncatePlan(fullPlan)), [fullPlan, unlocked]);
   const metrics = useMemo(() => (scenario === 'live' ? metricsForDate(garmin.data, date, manual[date]) : SCENARIOS[scenario]), [garmin.data, date, manual, scenario]);

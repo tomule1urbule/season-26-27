@@ -5,7 +5,7 @@ import { adaptSession, applyTrim, microcycleAdvice, RULES } from '../lib/adapt.j
 import { applyReview } from '../lib/coach.js';
 import { addDays, diffDays, fmtLong, fmtShort, fmtDow, mondayOf } from '../lib/dates.js';
 import { nextEvent, phaseOn, sessionsOn } from '../lib/plan.js';
-import { Q1, WEEKS, quarterProgress, isDone, weekCompletion } from '../lib/quarter.js';
+import { Q1, quarterProgress, isDone, cycleCompletion } from '../lib/quarter.js';
 
 const upTo = (arr, date, n) => (arr || []).filter((x) => x.d <= date).slice(-n);
 
@@ -89,35 +89,20 @@ function QuickEntry({ date, manual, setManual }) {
   );
 }
 
-function Advisor({ advice, settings, setSettings, date, plan }) {
-  const active = settings.tenDay.some((t) => date >= t.from && date < addDays(t.from, t.blocks * 10));
-  const nextMon = (() => { const m = addDays(mondayOf(date), 7); return m < plan.start ? plan.start : m; })();
-  return (
-    <section className="card adjust">
-      <div className="card-h"><h2>Microcycle</h2><span className="pill">{active ? '10-day block active' : '7-day weeks'}</span></div>
-      <p className="small ink2">{advice.recommend === 10 ? `Fatigue or life load is high (${advice.reasons.join('; ')}). A 10-day block adds three easy recovery days per block so the same sessions are spread over more days.` : advice.thin ? 'Not enough Garmin days in the last week to judge fatigue, so standard 7-day weeks stay. Sync Garmin or tick “high life load” in Settings.' : 'Recovery looks fine, so keep standard 7-day weeks. The advisor re-checks the last 7 days of Garmin data every time you open the app.'}</p>
-      <div className="row" style={{ marginTop: 10 }}>
-        {advice.recommend === 10 && !active && <button className="btn primary sm" onClick={() => setSettings({ ...settings, tenDay: [...settings.tenDay, { from: nextMon, blocks: 1 }] })}>Plan one 10-day block from {fmtShort(nextMon)}</button>}
-        {settings.tenDay.length > 0 && <button className="btn sm" onClick={() => setSettings({ ...settings, tenDay: [] })}>Back to 7-day weeks</button>}
-      </div>
-    </section>
-  );
-}
-
 function Hero({ prog, plan, g, log, date, setTab }) {
-  const wk = prog.weeks[prog.cur];
-  const c = prog.started ? weekCompletion(plan, g, log, prog.cur) : null;
+  const wk = prog.cycles[prog.cur];
+  const c = prog.started ? cycleCompletion(plan, g, log, prog.cur) : null;
   return (
     <section className="qstrip">
       <Ring value={prog.pct * 100} size={96}><b>{prog.started ? prog.dayN : 0}</b><span>of {prog.total}</span></Ring>
       <div className="qs-t">
         <span className="qs-k">{Q1.name}</span>
-        <h2>{prog.started ? `Week ${prog.cur + 1}: ${wk.title}` : `Day one is in ${prog.daysToStart} days`}</h2>
+        <h2>{prog.started ? `Cycle ${prog.cur + 1} of 10: ${wk.title}` : `Day one is in ${prog.daysToStart} days`}</h2>
         <p>{prog.started ? wk.mission : 'Monday 16 Nov starts the programme, the day after Larnaka. Until then your Garmin schedule covers the taper and the race. Take a look at what Quarter 1 holds.'}</p>
-        <div className="row"><button className="btn sm" onClick={() => setTab('quarter')}>Open Quarter 1</button>{prog.streak > 0 && <span className="pill good">{prog.streak}-week streak</span>}</div>
+        <div className="row"><button className="btn sm" onClick={() => setTab('quarter')}>Open Quarter 1</button>{prog.streak > 0 && <span className="pill good">{prog.streak}-cycle streak</span>}</div>
       </div>
       {c && c.total > 0 && (
-        <div className="qs-w"><Ring value={(c.done / c.total) * 100} size={78}><b>{c.done}/{c.total}</b></Ring><span>this week</span></div>
+        <div className="qs-w"><Ring value={(c.done / c.total) * 100} size={78}><b>{c.done}/{c.total}</b></Ring><span>this cycle</span></div>
       )}
     </section>
   );
@@ -128,8 +113,7 @@ export default function Dashboard({ plan, date, decision, metrics, garmin, scena
   const ph = phaseOn(plan, date);
   const results = useMemo(() => sessions.map((s) => adaptSession(s, decision, metrics)), [sessions, decision, metrics]);
   const head = results.find((r) => r.session.group !== 'rest') || results[0];
-  const advice = useMemo(() => microcycleAdvice(history.filter((h) => h.d <= date && diffDays(date, h.d) < 7), settings.lifeLoadHigh), [history, settings.lifeLoadHigh, date]);
-  const week = [0, 1, 2, 3, 4, 5, 6].map((k) => addDays(date, k)).filter((d) => d <= plan.end);
+  const week = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => addDays(date, k)).filter((d) => d <= plan.end);
   const larnaka = plan.races.find((r) => r.id === 'larnaka');
   const ev = nextEvent(plan, date);
   const days = (e) => diffDays(e.date, date);
@@ -173,7 +157,7 @@ export default function Dashboard({ plan, date, decision, metrics, garmin, scena
 
       {week.length > 0 && (
         <section className="card">
-          <div className="card-h"><h2>The week ahead</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
+          <div className="card-h"><h2>The next 10 days</h2><span className="sec-note">Tap a day for the full session{decision.trim > 0 ? ` · volume trimmed ${Math.round(decision.trim * 100)}%` : ''}</span></div>
           <div className="wk">
             {week.map((d, i) => {
               const ss = sessionsOn(plan, d).map((s) => applyTrim(applyReview(s, review), i === 0 ? 0 : decision.trim));
@@ -192,11 +176,10 @@ export default function Dashboard({ plan, date, decision, metrics, garmin, scena
       {prog.started && <CoachCard review={review} />}
 
       <details className="card fold">
-        <summary><h2>More tools</h2><span className="sec-note">Season timeline, microcycle, quick entry</span></summary>
+        <summary><h2>More tools</h2><span className="sec-note">Season timeline, quick entry</span></summary>
         <div className="stack" style={{ marginTop: 14 }}>
           <Ribbon plan={plan} date={date} />
           <div className="grid g-2">
-            <Advisor advice={advice} settings={settings} setSettings={setSettings} date={date} plan={plan} />
             <QuickEntry date={date} manual={manual} setManual={setManual} />
           </div>
         </div>

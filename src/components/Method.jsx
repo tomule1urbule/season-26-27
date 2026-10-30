@@ -15,22 +15,22 @@ export default function Method({ plan }) {
       <section className="card">
         <div className="card-h"><h2>How the programme is built</h2></div>
         <div className="method">
-          <p><b>Intensity distribution.</b> About 80% of endurance sessions are easy, 20% hard, and never more than three hard sessions a week (Seiler 2010; Esteve-Lanao 2007; Stöggl and Sperlich 2014). Measured on this plan:</p>
+          <p><b>Intensity distribution.</b> About 80% of endurance sessions are easy, 20% hard, and never more than four hard sessions in a 10-day cycle (Seiler 2010; Esteve-Lanao 2007; Stöggl and Sperlich 2014). Measured on this plan:</p>
           <table className="t"><thead><tr><th>Phase</th><th>Easy sessions</th><th>Hard sessions</th><th>Hard share</th></tr></thead><tbody>
             {mix.map((m) => { const ph = plan.phases.find((p) => p.id === m.phaseId); return ph && m.phaseId >= 1 ? <tr key={m.phaseId}><td>{ph.name}</td><td className="num">{m.easy}</td><td className="num">{m.hard}</td><td className="num">{pc(m.share)}</td></tr> : null; })}
           </tbody></table>
           <p className="small muted">Hard means VO₂max, threshold, tempo or race-pace work, races and tests. Counted by session, as in the research.</p>
           <p><b>Strength.</b> Heavy lifting (5–7 repetitions, 2 in reserve, slow lowering) improves running economy in trained runners (Rønnestad and Mujika 2014; Blagrove 2018; Berryman 2018). The year is cycled: {Object.values(BLOCKS).map((b) => b.label).join(' → ')}. Loads come from your own logged sets, not from the plan.</p>
-          <p><b>Timing.</b> One full-body session on Thursday, on its own day, three days before the Sunday long run. Nothing else is planned on any day, so there is no same-day interference between strength and endurance work (Robineau 2016). The upper-body lifts alternate every week.</p>
+          <p><b>Timing.</b> One full-body session every 10-day cycle on its own day (a rest day before, an easy run after), plus an upper-body and trunk session on every other cycle’s spare day, so there is no leg work near the long run. Nothing else is planned on any day, so there is no same-day interference between strength and endurance work (Robineau 2016). The upper-body lifts alternate every week.</p>
           <p><b>Taper.</b> Two weeks, volume down 40–60% in steps, intensity and frequency kept (Bosquet 2007). For Riga the long run is 16 km three weeks out, and the final two weeks run about 40% and 70% below your peak week (race excluded).</p>
-          <p><b>Progression.</b> No fixed 10% rule (Nielsen 2014). Build two to three weeks, then ease off. Week-to-week jumps above about 35% over the previous four weeks are flagged in the tests.</p>
+          <p><b>Progression.</b> No fixed 10% rule (Nielsen 2014). Build two to three weeks, then ease off. Cycle-to-cycle jumps above about 45% over the best of the previous four 10-day cycles are flagged in the tests.</p>
         </div>
       </section>
       <section className="card">
         <div className="card-h"><h2>How it adapts</h2></div>
         <div className="method">
           <p><b>Every morning</b> (see the rules table above): readiness, HRV status, sleep and load ratio decide green, yellow or red, which changes only today’s session.</p>
-          <p><b>Every week</b> the coach review looks at the previous 7 days and decides whether the next 7 progress, hold or deload. It scores these signals:</p>
+          <p><b>Every few days</b> the coach review looks at the previous 7 days of recovery data and the previous 10 days of running, and decides whether the next stretch progresses, holds or deloads. It scores these signals:</p>
           <ul className="small">
             <li>HRV 7-day average against the 14 nights before: {Math.round((1 - REVIEW_RULES.hrvDrop) * 100)}% lower is a warning, {Math.round((1 - REVIEW_RULES.hrvBigDrop) * 100)}% lower is a stop sign (1 and 2 points).</li>
             <li>Sleep score below {REVIEW_RULES.sleepLow} or under {REVIEW_RULES.sleepHours} h a night (1 point); below {REVIEW_RULES.sleepBad} (2 points).</li>

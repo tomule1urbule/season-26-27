@@ -16,7 +16,10 @@ import {
 } from './config.js';
 
 const Z2 = `${HR_ZONES[1].lo}–${HR_ZONES[1].hi}`;
-const SEQ10 = [0, 1, 2, 'F', 3, 4, 5, 'F', 6, 'F']; // slot order inside a 10-day block ('F' = flex recovery day)
+export const CYCLE = 10;
+// The 10-day rhythm, one session a day: run, swim, key run, rest, strength, run, spare (swim or upper-body strength, alternating), easy run, long run, recovery walk.
+// 'F' = recovery day, 'X' = extra short easy run (or easy ride when the Friday slot is not a run).
+const SEQ10 = [0, 1, 2, 'F', 3, 4, 5, 'X', 6, 'F'];
 export const FAMILY_DAYS = { '2026-12-24': 'Kūčios – family day', '2026-12-25': 'Christmas – family day' };
 
 const mk = (o) => {
@@ -120,7 +123,7 @@ export function makeBuilders(P, cfg) {
     strength: (which, level = 'build', o = {}) => {
       const block = level === 'taper' ? 'taper' : (B._block || 'anat');
       const deload = level === 'light' && block !== 'return';
-      const variant = (B._wk || 0) % 2;
+      const variant = ((B._wk || 0) + (which === 'U' ? 1 : 0)) % 2;
       const exs = buildExercises(which, block, { deload, variant });
       const blk = BLOCKS[block];
       const extras = o.plyo ? [{ name: 'Pogo hops', detail: '3 × 20, quick springy contacts, stiff ankles' }, { name: 'Single-leg hops', detail: '3 × 8 each leg, land softly and stick it' }] : [];
@@ -128,7 +131,7 @@ export function makeBuilders(P, cfg) {
       return mk({
         group: 'strength', sport: 'strength', kind: 'strength', intensity: 'str', strengthDay: which, block, exercises: exs, extras,
         minutes: estMinutes(exs) + (extras.length ? 6 : 0), why: `strength_${block}`,
-        title: `${SESSIONS[which].name} · ${variant ? 'bench and pullover week' : 'press and row week'}${label}`,
+        title: `${SESSIONS[which].name} · ${variant ? 'bench and pullover' : 'press and row'}${label}`,
         target: `${blk.label} block · stop every set with ${exs[0].rir} reps in reserve · tempo is lowering-pause-lifting in seconds`,
         warmup: '5′ easy bike or brisk walk, band pull-aparts, scapular push-ups, bodyweight split squats. Before the first lift do two ramp-up sets at about 50 % and 75 % of the working weight.',
         main: exs.map(exLine).join('  ·  '),
@@ -169,7 +172,7 @@ export function makeBuilders(P, cfg) {
 const clampIdx = (arr, i) => arr[Math.max(0, Math.min(arr.length - 1, i))];
 
 function phase1(slot, { wk, B }) {
-  const runs = [[0, 0, 0], [5, 6, 9], [6, 7, 11], [7, 8, 13], [5, 6, 10], [8, 9, 13], [6, 5, 0]]; // [Mon, Wed, long] km (wk5: long run moves to Sat 26 Dec because Mon 28 Dec is Checkpoint 1)
+  const runs = [[0, 0, 0], [5, 6, 9], [6, 7, 11], [8, 9, 14], [5, 6, 10], [8, 9, 13], [6, 5, 0]]; // [Mon, Wed, long] km
   const [m, wd, su] = clampIdx(runs, wk);
   const swimN = [0, 2, 3, 3, 2, 3, 2][Math.min(wk, 6)];
   const variants = ['catchup', 'elbow', 'breathe'];
@@ -192,15 +195,15 @@ function phase1(slot, { wk, B }) {
     2: [B.easyRun(wd, { strides: wk >= 2 ? 6 : 4 })],
     3: [B.strength('S', down ? 'light' : 'build')],
     4: [down || wk === 6 ? B.rest() : B.bike(bikeMin, wk === 2 ? 'cad' : 'z2')],
-    5: [wk === 5 ? B.longRun(su) : B.rest()],
-    6: [wk === 5 || wk === 6 ? B.rest() : B.longRun(su)],
+    5: [B.rest()],
+    6: [wk === 6 ? B.rest() : B.longRun(su)],
   }[slot];
 }
 
 function phase2(slot, { wk, B, P }) {
   const pc = B.pc;
   // [Mon, Wed(key total km), Fri, Sun]
-  const V = [[0, 0, 6, 12], [8, 9, 7, 13], [9, 10, 7, 15], [9, 10, 8, 16], [7, 8, 6, 12], [9, 10, 8, 15], [8, 8, 6, 10], [4, 0, 0, 0]];
+  const V = [[0, 0, 6, 12], [7, 8, 6, 12], [8, 9, 7, 13], [9, 10, 8, 16], [7, 8, 6, 12], [9, 10, 8, 15], [8, 8, 6, 10], [4, 0, 0, 0]];
   const [m, k, f, su] = clampIdx(V, wk);
   const key = {
     1: B.keyRun({ title: 'Speed: 6×400 m', totalKm: 9, target: `400s at ~${pc(P.five - 8)}/km (RPE 8) · 200 m jog between`, main: '6×400 m fast but relaxed, 200 m jog. Quick feet, tall posture, finish each rep feeling you could do 2 more.' }),
@@ -308,7 +311,7 @@ function phase4(slot, { wk, B, P }) {
 }
 
 const P5 = { // weeks-to-marathon → [Mon, Wed, Fri, Sun]
-  15: [7, 8, 6, 13], 14: [7, 8, 6, 13], 13: [8, 10, 7, 15], 12: [10, 11, 8, 18], 11: [7, 8, 6, 12], 10: [8, 10, 7, 16], 9: [10, 11, 8, 20],
+  15: [8, 9, 7, 14], 14: [8, 9, 7, 14], 13: [8, 10, 7, 15], 12: [9, 10, 8, 16], 11: [7, 8, 6, 12], 10: [8, 10, 7, 16], 9: [9, 10, 8, 18],
   8: [11, 12, 9, 24], 7: [9, 10, 7, 16], 6: [11, 12, 9, 28], 5: [9, 10, 7, 18], 4: [12, 13, 9, 32], 3: [11, 12, 8, 26],
   2: [9, 10, 6, 16], 1: [7, 8, 5, 10], 0: [6, 6, 0, 0],
 };
@@ -319,11 +322,11 @@ function phase5(slot, { wk, B, P, wToGo, race }) {
     return {
       0: [B.rest('Full rest after the triathlon.')],
       1: [B.swimTech('catchup', 3)],
-      2: [B.easyRun(7)],
+      2: [B.easyRun(8)],
       3: [B.strength('S', 'light')],
-      4: [B.easyRun(7, { strides: 4 })],
+      4: [B.easyRun(8, { strides: 4 })],
       5: [B.rest()],
-      6: [B.longRun(12)],
+      6: [B.longRun(14)],
     }[slot];
   }
   const [m, k, f, su] = P5[Math.max(0, Math.min(15, wToGo))];
@@ -433,7 +436,8 @@ export function generatePlan(opts = {}) {
   const fall = opts.fallMarathon || DEFAULT_FALL_MARATHON;
   const cfg = { ftp: ATHLETE.bikeFtp, ftpTested: false, swimCss: ATHLETE.swimCssSecPer100, ...(opts.cfg || {}) };
   const P = opts.paces || makePaces();
-  const tenDay = opts.tenDay || []; // [{from:'YYYY-MM-DD', blocks:1..3}]
+  // Whole season runs on 10-day cycles from day 1 unless a caller asks for 7-day weeks (opts.microcycle = 7).
+  const tenDay = opts.tenDay || (opts.microcycle === 7 ? [] : [{ from: SEASON.start, blocks: Math.ceil((diffDays(fall, SEASON.start) + 1) / CYCLE) }]);
   const phases = buildPhases(fall);
   const races = buildRaces(fall);
   const checkpoints = buildCheckpoints(fall);
@@ -441,6 +445,7 @@ export function generatePlan(opts = {}) {
   const raceByDate = Object.fromEntries(races.map((r) => [r.date, r]));
   const cpByDate = Object.fromEntries(checkpoints.map((c) => [c.date, c]));
   const days = {};
+  const displaced = []; // long runs knocked out by family days move to the next easy day
 
   const phaseFor = (d) => phases.find((p) => p.id >= 1 && d >= p.start && d <= p.end);
   const slotFor = (d) => {
@@ -461,7 +466,24 @@ export function generatePlan(opts = {}) {
     const { slot, pos, ten } = slotFor(d);
     let sessions;
     if (slot === 'F') {
-      sessions = [[B.mobility(25), B.bike(30, 'rec'), B.recovery('Easy walk · 40′', 40, 'Outdoors if possible.')][[3, 7, 9].indexOf(pos)]];
+      sessions = [pos === 3 ? B.mobility(25) : B.recovery('Easy walk · 40′', 40, 'Outdoors if possible.')];
+    } else if (slot === 'X') {
+      B._block = blockFor(phase.key, wk, wToGo); B._wk = wk;
+      const ctx = { wk, B, P, cfg, wToGo, date: d };
+      const ref = [4, 0, 2].map((k) => (PHASE_FN[phase.key](k, ctx) || [])[0]).find((x) => x && x.sport === 'run' && x.km >= 5 && x.kind !== 'long');
+      const km = ref ? Math.max(4, Math.round(ref.km * 0.75)) : 0;
+      sessions = [km && wk > 0 ? B.easyRun(km) : B.rest()];
+    } else if (slot === 5 && phase.key !== 'phase4' && (PHASE_FN[phase.key](5, { wk, B, P, cfg, wToGo, date: d }) || [{}])[0].group === 'rest') {
+      // The spare day alternates: a second swim (swim is the limiter for the triathlon) or an upper-body strength session.
+      const cycleNo = Math.floor(diffDays(d, SEASON.start) / CYCLE);
+      const soonA = races.some((r) => ['riga', 'trakai', 'fall'].includes(r.id) && r.date > d && diffDays(r.date, d) <= 13);
+      if (cycleNo % 2 === 1 && wk > 0) { B._block = blockFor(phase.key, wk, wToGo); B._wk = wk; sessions = [B.strength('U', soonA ? 'taper' : 'build')]; }
+      else {
+      const main = (PHASE_FN[phase.key](1, { wk, B, P, cfg, wToGo, date: d }) || [])[0];
+      B._block = blockFor(phase.key, wk, wToGo); B._wk = wk;
+      sessions = [wk === 0 || !main || main.sport !== 'swim' ? B.rest() : main.kind === 'key' ? B.swimTech(['catchup', 'elbow', 'breathe'][wk % 3], 3) : B.swimEndu(wk > 4 ? 600 : 400)];
+      }
+    } else if (slot === 'noop') {
     } else {
       B._block = blockFor(phase.key, wk, wToGo); B._wk = wk;
       sessions = PHASE_FN[phase.key](slot, { wk, B, P, cfg, wToGo, date: d }) || [B.rest()];
@@ -487,12 +509,22 @@ export function generatePlan(opts = {}) {
     }
     const cp1 = checkpoints.find((c) => c.id === 1);
     if (cp1 && d === addDays(cp1.date, 1) && !race) { sessions = [bikeTestSession(B)]; tag = 'checkpoint'; }
-    if (FAMILY_DAYS[d] && !race && !cp) { sessions = [B.rest(FAMILY_DAYS[d] + '. Enjoy it; training resumes tomorrow.')]; tag = 'family'; }
+    if (FAMILY_DAYS[d] && !race && !cp) { const lost = sessions.find((x) => x.kind === 'long'); if (lost) displaced.push({ from: d, session: lost }); sessions = [B.rest(FAMILY_DAYS[d] + '. Enjoy it; training resumes tomorrow.')]; tag = 'family'; }
 
     const aRace = races.find((r) => ['riga', 'trakai', 'fall'].includes(r.id) && r.date > d && diffDays(r.date, d) <= 13);
     if (aRace) sessions = sessions.map((s) => (s.group === 'run' && s.kind !== 'race' ? { ...s, why: 'taper' } : s));
     sessions = sessions.map((s, i) => ({ ...s, id: `${d}#${i}`, date: d, phaseId: phase.id }));
     days[d] = { date: d, phaseId: phase.id, wk, microcycle: ten ? 10 : 7, tag, sessions };
+  }
+  for (const { from, session } of displaced) {
+    for (let k = 1; k <= 4; k++) {
+      const t = addDays(from, k), nxt = addDays(t, 1), day = days[t];
+      if (!day || day.tag || raceByDate[nxt] || cpByDate[nxt]) continue;
+      const only = day.sessions[0];
+      if (day.sessions.length === 1 && (only.group === 'rest' || only.group === 'recovery' || (only.sport === 'run' && only.kind === 'easy'))) {
+        day.sessions = [{ ...session, id: `${t}#0`, date: t, phaseId: day.phaseId, notes: `${session.notes || ''} Moved from ${from}, a family day.`.trim() }]; break;
+      }
+    }
   }
   enforceOneAday(days);
   return { days, phases, races, checkpoints, start: SEASON.start, end: last, cfg, paces: P, tenDay };
@@ -529,6 +561,29 @@ export function weeklySummary(plan) {
     if (day.sessions.every((s) => s.group === 'rest' && s.kind === 'rest')) out[wk].restDays += 1;
   }
   return Object.values(out).sort((a, b) => (a.week < b.week ? -1 : 1));
+}
+
+/** Totals per 10-day cycle, counted from the season start (the unit the plan is built in). */
+export function cycleSummary(plan, len = CYCLE) {
+  const out = [];
+  for (let i = 0; ; i++) {
+    const a = addDays(plan.start, i * len);
+    if (a > plan.end) break;
+    const o = { i, start: a, end: addDays(a, len - 1), minutes: 0, tss: 0, runKm: 0, bySport: { run: 0, bike: 0, swim: 0, strength: 0, brick: 0 }, restDays: 0, sessions: 0, complete: addDays(a, len - 1) <= plan.end };
+    for (let k = 0; k < len; k++) {
+      const day = plan.days[addDays(a, k)]; if (!day) continue;
+      for (const s of day.sessions) {
+        o.minutes += s.minutes; o.tss += s.tss;
+        if (s.sport === 'run' || s.sport === 'brick') o.runKm += s.km || 0;
+        const g = s.group === 'checkpoint' || s.group === 'race' ? s.sport : s.group;
+        if (g in o.bySport) o.bySport[g] += s.minutes;
+        if (s.group !== 'rest') o.sessions++;
+      }
+      if (day.sessions.every((s) => s.group === 'rest')) o.restDays++;
+    }
+    out.push(o);
+  }
+  return out;
 }
 
 export const sessionsOn = (plan, date) => plan.days[date]?.sessions || [];

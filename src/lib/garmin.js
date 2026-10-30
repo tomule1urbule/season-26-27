@@ -72,3 +72,17 @@ export function weeklyActuals(g, mondayOf) {
   }
   return out;
 }
+
+/** Actuals per window of `len` days, keyed by each window's start date (used for the 10-day cycles). */
+export function windowActuals(g, startOf) {
+  const out = {};
+  for (const a of g?.activities || []) {
+    const w = startOf(a.d); if (!w) continue;
+    out[w] ||= { week: w, minutes: 0, tss: 0, runKm: 0, bySport: { run: 0, bike: 0, swim: 0, strength: 0 } };
+    const grp = a.s === 'walk' ? null : a.s;
+    out[w].minutes += a.min; out[w].tss += activityTss(a);
+    if (a.s === 'run') out[w].runKm += a.km || 0;
+    if (grp && grp in out[w].bySport) out[w].bySport[grp] += a.min;
+  }
+  return out;
+}

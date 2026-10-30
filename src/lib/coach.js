@@ -1,4 +1,4 @@
-// Weekly coach review: reads the last 7 days of Garmin data, the plan and your log, and decides whether the next
+// Coach review: reads the last 7 days (recovery signals) and 10 days (running volume) of Garmin data, the plan and your log, and decides whether the next
 // 7 days progress as written, hold back, or deload.
 //
 // The signals and the thresholds below are coaching heuristics built on the monitoring literature (see evidence.js):
@@ -96,13 +96,15 @@ export function weeklyReview({ plan, g, log = [], date }) {
   }
 
   // Compliance and the next week's size
-  const pl = plannedKm(plan, from, to), ac = runKm(g, from, to);
+  // Running volume is compared over the last full 10-day cycle, the unit the plan is built in.
+  const cFrom = addDays(date, -10);
+  const pl = plannedKm(plan, cFrom, to), ac = runKm(g, cFrom, to);
   let compliance = null;
-  if (pl >= 10 && (g?.activities || []).some((a) => a.d >= from && a.d <= to)) {
+  if (pl >= 10 && (g?.activities || []).some((a) => a.d >= cFrom && a.d <= to)) {
     compliance = ac / pl;
     add('Running done vs planned', `${Math.round(ac)} of ${Math.round(pl)} km`, compliance >= R.complianceGood ? 'good' : compliance >= R.complianceLow ? 'warn' : 'bad',
-      compliance >= R.complianceGood ? 'You did what was planned.' : 'Less than planned. The next week is sized from what you actually ran.');
-  } else if (ac > 0) add('Running last 7 days', `${Math.round(ac)} km`, 'none', 'No plan to compare yet (the programme starts 16 Nov).');
+      compliance >= R.complianceGood ? 'You did what was planned.' : 'Less than planned. The next 10 days are sized from what you actually ran.');
+  } else if (ac > 0) add('Running last 10 days', `${Math.round(ac)} km`, 'none', 'No plan to compare yet (the programme starts 16 Nov).');
 
   // Easy-run efficiency trend (speed at the same heart rate)
   const e1 = efficiency(g, addDays(date, -21), to), e0 = efficiency(g, addDays(date, -42), addDays(date, -22));
@@ -118,11 +120,11 @@ export function weeklyReview({ plan, g, log = [], date }) {
   if (score >= R.deloadScore) { action = 'deload'; factor = R.deloadFactor; }
   else if (score >= R.holdScore) { action = 'hold'; factor = R.holdFactor; }
   const reasons = [];
-  // cap the coming week at +20 % on what you actually ran
-  const nextPl = plannedKm(plan, date, addDays(date, 6));
+  // cap the coming 10 days at +20 % on what you actually ran
+  const nextPl = plannedKm(plan, date, addDays(date, 9));
   if (compliance != null && compliance < R.complianceGood && ac > 0 && nextPl > ac * (1 + SOFT)) {
     const cap = (ac * (1 + SOFT)) / nextPl;
-    if (cap < factor) { factor = Math.round(cap * 100) / 100; reasons.push(`You ran ${Math.round(ac)} km last week against ${Math.round(pl)} planned. The coming week plans ${Math.round(nextPl)} km, so it is capped at +${Math.round(SOFT * 100)}% on what you actually ran.`); if (action === 'progress') action = 'hold'; }
+    if (cap < factor) { factor = Math.round(cap * 100) / 100; reasons.push(`You ran ${Math.round(ac)} km in the last 10 days against ${Math.round(pl)} planned. The next 10 days plan ${Math.round(nextPl)} km, so it is capped at +${Math.round(SOFT * 100)}% on what you actually ran.`); if (action === 'progress') action = 'hold'; }
   }
   if (action === 'deload') reasons.unshift(`Score ${score} (deload from ${R.deloadScore}): recovery signals are behind, so the next 7 days lose ${Math.round((1 - factor) * 100)}% of volume. Intensity stays where it is, which is what keeps fitness (Bosquet 2007).`);
   else if (action === 'hold') reasons.unshift(`Score ${score} (hold from ${R.holdScore}): no build this week. Easy and long runs shrink by ${Math.round((1 - factor) * 100)}%, key sessions stay.`);

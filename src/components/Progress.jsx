@@ -3,9 +3,9 @@ import { BarChart } from './charts.jsx';
 import Checkpoints from './Checkpoints.jsx';
 import { LoadHrv } from './Analytics.jsx';
 import { LIB } from '../lib/strength.js';
-import { weeklySummary } from '../lib/plan.js';
-import { weeklyActuals } from '../lib/garmin.js';
-import { BASELINE, WEEKS, achievements, nowStats, quarterProgress, weekStart } from '../lib/quarter.js';
+import { cycleSummary } from '../lib/plan.js';
+import { weeklyActuals, windowActuals } from '../lib/garmin.js';
+import { BASELINE, CYCLE_COUNT, CYCLE_LEN, achievements, nowStats, quarterProgress, cycleStart, cycleIndex } from '../lib/quarter.js';
 import { addDays, fmtShort, mondayOf, range } from '../lib/dates.js';
 
 const mmss = (s) => (s == null ? '–' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
@@ -66,12 +66,12 @@ export default function Progress({ plan, garmin, log, today, cpResults, setCpRes
     return { peak: Math.round(peak), longest, vo2from: v[0], vo2to: v[v.length - 1], weeks60: w.filter((x) => x.runKm >= 55).length };
   }, [g, today]);
 
-  // planned vs actual per Q1 week (hours)
+  // planned vs actual per Q1 cycle (hours)
   const chart = useMemo(() => {
-    const pw = Object.fromEntries(weeklySummary(plan).map((w) => [w.week, w]));
-    const act = weeklyActuals(g, mondayOf);
+    const pw = Object.fromEntries(cycleSummary(plan).map((w) => [w.start, w]));
+    const act = windowActuals(g, (d) => (d >= cycleStart(0) && d <= plan.end ? cycleStart(cycleIndex(d)) : null));
     const asOf = g?.meta?.asOf?.slice(0, 10);
-    const cats = WEEKS.map((w, i) => ({ key: weekStart(i), label: `W${i + 1}` }));
+    const cats = Array.from({ length: CYCLE_COUNT }, (_, i) => ({ key: cycleStart(i), label: `C${i + 1}` }));
     const h1 = (m) => Math.round((m / 60) * 10) / 10;
     const stacks = Object.keys(SPORTS).map((s) => ({ name: s[0].toUpperCase() + s.slice(1), color: SPORTS[s], values: cats.map((c) => (asOf && c.key <= asOf && act[c.key] ? h1(act[c.key].bySport[s]) : 0)) }));
     return { cats, stacks, planned: cats.map((c) => (pw[c.key] ? h1(pw[c.key].minutes) : null)) };
@@ -80,7 +80,7 @@ export default function Progress({ plan, garmin, log, today, cpResults, setCpRes
   const key3 = ['bss', 'goblet', 'incline'].map((id) => ({ id, lib: LIB[id], last: lifts[id] }));
   const msg = !prog.started
     ? `Day one is in ${prog.daysToStart} days. You arrive with a ${facts?.longest ?? '–'} km long run and a ${facts?.peak ?? '–'} km peak week behind you. Quarter 1 builds on that.`
-    : earned ? `${earned} of ${badges.length} achievements earned. ${prog.streak ? `${prog.streak} solid week${prog.streak > 1 ? 's' : ''} in a row.` : 'The first solid week starts the streak.'}` : 'Every session you do from here counts toward the first achievement.';
+    : earned ? `${earned} of ${badges.length} achievements earned. ${prog.streak ? `${prog.streak} solid cycle${prog.streak > 1 ? 's' : ''} in a row.` : 'The first solid cycle starts the streak.'}` : 'Every session you do from here counts toward the first achievement.';
 
   return (
     <div className="stack">
@@ -110,7 +110,7 @@ export default function Progress({ plan, garmin, log, today, cpResults, setCpRes
 
       <section className="card">
         <div className="card-h"><h2>Quarter 1 volume</h2><span className="sec-note">Bars are what you did (from Garmin), the line is the plan</span></div>
-        <BarChart title="Hours per week" cats={chart.cats} stacks={chart.stacks} marks={{ name: 'Planned', color: 'var(--ink)', values: chart.planned }} yFmt={(v) => Math.round(v * 10) / 10} unit=" h" />
+        <BarChart title="Hours per 10-day cycle" cats={chart.cats} stacks={chart.stacks} marks={{ name: 'Planned', color: 'var(--ink)', values: chart.planned }} yFmt={(v) => Math.round(v * 10) / 10} unit=" h" />
       </section>
 
       <section className="card">
